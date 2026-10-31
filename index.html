@@ -423,7 +423,7 @@ function stepper(ex){
 }
 const norm=s=>s.replace(/\s+/g,' ').trim();
 // Rewards for solved tasks: the first solved task always gets the first picture, the next ones the following pictures.
-const REWARDS=['nagrody/kot1.png',...Array.from({length:12},(_,i)=>`nagrody/roz${String(i+1).padStart(2,'0')}.jpg`),'nagrody/kot2.jpg','nagrody/kot3.jpg','nagrody/kot4.jpg','nagrody/kot5.jpg','nagrody/kot6.jpg','nagrody/piesek2.png','nagrody/piesek3.png'];
+const REWARDS=['nagrody/kot1.png','nagrody/moje01.png','nagrody/moje02.webp','nagrody/moje03.png','nagrody/moje04.png','nagrody/moje05.webp','nagrody/moje06.webp','nagrody/moje07.png','nagrody/moje08.png','nagrody/piesek2.png','nagrody/piesek3.png'];
 function rewardFor(key){
   let d=[];try{d=JSON.parse(localStorage.getItem('ckkdone')||'[]')}catch(e){}
   if(!d.includes(key)){d.push(key);try{localStorage.setItem('ckkdone',JSON.stringify(d))}catch(e){}}
