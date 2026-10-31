@@ -1,0 +1,654 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>C krok po kroku</title>
+<style>
+:root{--bg:#fafaf7;--fg:#1d1d1f;--mut:#6b6b70;--card:#fff;--bd:#e2e2dc;--ac:#2f5bd8;--hl:#fff3b0;--ch:#ffd9a8;--ok:#1d8a4b;--bad:#c93a3a;--term:#101418;--termfg:#c9f7d0}
+@media(prefers-color-scheme:dark){:root{--bg:#15161a;--fg:#e8e8ea;--mut:#9a9aa2;--card:#1e2026;--bd:#33353d;--ac:#7ba0ff;--hl:#4a4320;--ch:#5a3d1a;--ok:#4cc27f;--bad:#ff7a7a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,sans-serif}
+header{padding:14px 16px;border-bottom:1px solid var(--bd);display:flex;gap:12px;align-items:baseline;flex-wrap:wrap}
+header h1{margin:0;font-size:20px}header span{color:var(--mut);font-size:14px}
+.wrap{display:grid;grid-template-columns:230px 1fr;max-width:1100px;margin:0 auto}
+nav{padding:12px 16px;border-right:1px solid var(--bd)}
+nav button{display:block;width:100%;text-align:left;margin:0 0 6px;padding:8px 10px;border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:8px;font:inherit;cursor:pointer}
+nav button.on{border-color:var(--ac);outline:1px solid var(--ac)}
+nav button:disabled{opacity:.45;cursor:default}
+main{padding:16px;min-width:0}
+h2{margin:.2em 0 .5em}h3{margin:1.4em 0 .4em}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:12px 14px;margin:10px 0}
+code,pre{font-family:ui-monospace,Consolas,monospace}
+p code,li code{background:var(--bd);padding:1px 5px;border-radius:4px}
+.stepper{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.code{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:6px 0;overflow:auto;font-size:14px}
+.code div{white-space:pre;padding:0 10px;min-height:1.55em}
+.code div.cur{background:var(--hl);font-weight:600}
+.code i{color:var(--mut);font-style:normal;display:inline-block;width:2em}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{border:1px solid var(--bd);padding:3px 8px;text-align:left}
+td.ch{background:var(--ch);font-weight:600}
+.term{background:var(--term);color:var(--termfg);border-radius:8px;padding:8px 10px;min-height:3.2em;white-space:pre-wrap;font:14px ui-monospace,Consolas,monospace;margin-top:8px}
+.note{margin:8px 0;padding:8px 10px;border-left:4px solid var(--ac);background:var(--card);border-radius:4px;min-height:2.6em}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;align-items:center}
+.btns button,.opt{padding:7px 14px;border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:8px;font:inherit;cursor:pointer}
+.btns button.pri{background:var(--ac);color:#fff;border-color:var(--ac)}
+.btns .cnt{color:var(--mut);font-size:14px}
+.opt{display:block;width:100%;text-align:left;margin:6px 0}
+.opt.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,var(--card))}
+.opt.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 18%,var(--card))}
+.why{color:var(--mut);margin:4px 0 0;font-size:15px}
+.score{font-weight:600}
+textarea,input.in{width:100%;font:14px ui-monospace,Consolas,monospace;background:var(--card);color:var(--fg);border:1px solid var(--bd);border-radius:8px;padding:8px;margin:4px 0}
+.stk{margin-top:8px;font-size:14px;color:var(--mut)}
+.err{border-color:var(--bad);color:var(--bad)}
+@media(max-width:760px){.wrap{grid-template-columns:1fr}nav{border-right:0;border-bottom:1px solid var(--bd)}.stepper{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header><h1>C krok po kroku</h1><span>Programowanie proceduralne · UMK · klikaj „Dalej” i patrz, co robi komputer</span></header>
+<div class="wrap"><nav id="nav"></nav><main id="main"></main></div>
+<script>
+// Tracer: mirrors the C program in JS and records the machine state after each step.
+function trace(code, fn){
+  const vars=[], steps=[]; let out='';
+  const api={
+    decl(n,t,v){vars.push({n,t,v,a:'0x'+(0x7ffc1000+vars.length*4).toString(16)})},
+    get(n){return vars.find(x=>x.n===n).v},
+    set(n,v){vars.find(x=>x.n===n).v=v},
+    print(s){out+=s},
+    s(line,note){steps.push({line,note,out,vars:vars.map(x=>({...x}))})}
+  };
+  fn(api); return {code,steps};
+}
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+const fmt=(v,t)=>v===undefined?'? (śmieci)':t==='char'?(v>31&&v<127?`'${String.fromCharCode(v)}' (${v})`:String(v)):(typeof v==='number'&&!Number.isInteger(v)?String(+v.toPrecision(7)):String(v));
+
+const LESSONS=[
+{id:'l3',title:'3. Pierwszy program w C',
+theory:`
+<p>Program w C to <b>przepis</b>: komputer wykonuje instrukcje po kolei, od góry do dołu. Każdy program zaczyna się w funkcji <code>main</code>.</p>
+<ul>
+<li><code>#include &lt;stdio.h&gt;</code> – dołącza bibliotekę do wejścia/wyjścia (<code>printf</code>, <code>scanf</code>).</li>
+<li><b>Zmienna</b> to nazwane miejsce w pamięci. <code>int wiek = 18;</code> znaczy: zarezerwuj pamięć na liczbę całkowitą, nazwij ją <code>wiek</code>, wpisz 18.</li>
+<li>Typy: <code>int</code> (całkowite), <code>float</code>/<code>double</code> (ułamkowe), <code>char</code> (jeden znak).</li>
+<li><code>printf("%d", x)</code> wypisuje; <code>%d</code> = int, <code>%f</code> = float, <code>%c</code> = znak. <code>\\n</code> to nowa linia.</li>
+<li><code>scanf("%d", &amp;x)</code> wczytuje liczbę do zmiennej. <code>&amp;</code> to „adres zmiennej” – scanf musi wiedzieć, gdzie wpisać wynik.</li>
+<li>Każda instrukcja kończy się średnikiem <code>;</code>.</li></ul>
+<p>Uwaga: zmienna bez wartości początkowej zawiera <b>przypadkowe śmieci</b> z pamięci. Zobacz to w przykładzie 2.</p>`,
+examples:[
+{title:'Przykład 1: zmienne i printf',make:()=>trace([
+'#include <stdio.h>','int main(void) {','    int wiek = 18;','    float wzrost = 1.65f;','    wiek = wiek + 1;','    printf("Mam %d lat\\n", wiek);','    return 0;','}'],
+t=>{t.s(2,'Zaczyna się wykonywanie funkcji main. Pamięć jest jeszcze pusta.');
+t.decl('wiek','int',18);t.s(3,'Powstaje zmienna wiek (int) i dostaje wartość 18. Ma swój adres w pamięci.');
+t.decl('wzrost','float',1.65);t.s(4,'Powstaje druga zmienna, ułamkowa.');
+t.set('wiek',19);t.s(5,'Najpierw liczy się prawa strona (18 + 1 = 19), potem wynik trafia do wiek. Znak = to PRZYPISANIE, nie „równa się” z matematyki.');
+t.print('Mam 19 lat\n');t.s(6,'%d zostaje zastąpione wartością zmiennej wiek. Wynik pojawia się w terminalu.');
+t.s(7,'return 0 kończy program z kodem 0 („wszystko OK”).')})},
+{title:'Przykład 2: scanf i śmieci w pamięci',make:()=>trace([
+'#include <stdio.h>','int main(void) {','    int a, b;','    printf("Podaj dwie liczby: ");','    scanf("%d %d", &a, &b);','    printf("Suma = %d\\n", a + b);','    return 0;','}'],
+t=>{t.s(2,'Start main.');
+t.decl('a','int');t.decl('b','int');t.s(3,'Zmienne istnieją, ale nikt nic do nich nie wpisał – mają śmieci. Odczytanie ich teraz dałoby losowy wynik.');
+t.print('Podaj dwie liczby: ');t.s(4,'Program prosi użytkownika o dane.');
+t.s(5,'scanf czeka na klawiaturę… (tu przyjmijmy, że wpisujesz: 7 5)');
+t.set('a',7);t.set('b',5);t.s(5,'scanf wpisał 7 pod adres &a i 5 pod adres &b. Dlatego potrzebne jest &.');
+t.print('Suma = 12\n');t.s(6,'Najpierw a + b = 12, potem printf wypisuje wynik.');
+t.s(7,'Koniec programu.')})},
+{title:'Przykład 3: dzielenie liczb całkowitych',make:()=>trace([
+'#include <stdio.h>','int main(void) {','    int x = 7, y = 2;','    float f = x / y;','    float g = (float)x / y;','    printf("%f %f\\n", f, g);','    return 0;','}'],
+t=>{t.s(2,'Start.');
+t.decl('x','int',7);t.decl('y','int',2);t.s(3,'Dwie liczby całkowite.');
+t.decl('f','float',3);t.s(4,'x / y to dzielenie dwóch int, więc wynik też jest int: 3 (część ułamkowa jest ucinana). Dopiero potem trafia do float jako 3.00.');
+t.decl('g','float',3.5);t.s(5,'(float)x zamienia 7 na 7.0, więc dzielenie jest ułamkowe: 7.0 / 2 = 3.5.');
+t.print('3.000000 3.500000\n');t.s(6,'%f wypisuje float z 6 miejscami po przecinku.');
+t.s(7,'Koniec. Wniosek: typ operandów decyduje o rodzaju dzielenia.')})}
+],
+quiz:[
+{q:'Co robi instrukcja  x = x + 1;  ?',o:['Zgłasza błąd, bo x nie może równać się x+1','Zwiększa wartość x o 1','Porównuje x z x+1','Tworzy nową zmienną'],a:1,w:'= to przypisanie: liczy prawą stronę i wpisuje do zmiennej po lewej.'},
+{q:'Ile wynosi  int r = 9 / 2;  ?',o:['4.5','5','4','błąd'],a:2,w:'Dzielenie dwóch int daje int; część ułamkowa jest ucinana.'},
+{q:'Po co jest & w  scanf("%d", &x); ?',o:['To mnożenie','Podaje adres zmiennej, gdzie wpisać wczytaną liczbę','Oznacza komentarz','Zamienia liczbę na tekst'],a:1,w:'scanf musi wiedzieć, w którym miejscu pamięci zapisać wynik.'},
+{q:'Co zawiera zmienna  int z;  zaraz po deklaracji (bez wartości)?',o:['0','Przypadkowe śmieci','Pusty napis','Program się nie skompiluje'],a:1,w:'C nie zeruje zmiennych lokalnych. Zawsze nadawaj wartość początkową.'}
+]},
+{id:'l4',title:'4. Warunki i pętle',
+theory:`
+<p>Dotąd program szedł prosto w dół. <b>Instrukcje sterujące</b> pozwalają wybierać drogę (<code>if</code>) i powtarzać kod (pętle).</p>
+<ul>
+<li><code>if (warunek) {…} else {…}</code> – wykonuje blok tylko, gdy warunek jest prawdziwy. W C <b>0 = fałsz</b>, każda inna liczba = prawda.</li>
+<li>Porównania: <code>==</code> (równe), <code>!=</code>, <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, <code>&gt;=</code>. Łączenie: <code>&amp;&amp;</code> (i), <code>||</code> (lub), <code>!</code> (nie).</li>
+<li>Pułapka: <code>if (x = 5)</code> to PRZYPISANIE (zawsze prawda), a nie porównanie. Porównuj przez <code>==</code>.</li>
+<li><code>for (start; warunek; krok)</code> – gdy wiesz, ile razy powtarzać.</li>
+<li><code>while (warunek)</code> – powtarza, dopóki warunek jest prawdziwy; sprawdza go PRZED każdym obrotem.</li>
+<li><code>do {…} while (warunek);</code> – jak while, ale najpierw wykonuje blok, potem sprawdza. <code>break</code> przerywa pętlę.</li></ul>`,
+examples:[
+{title:'Przykład 1: if / else if / else',make:()=>trace([
+'#include <stdio.h>','int main(void) {','    int temp = 15;','    if (temp > 20) {','        printf("Cieplo\\n");','    } else if (temp > 10) {','        printf("Srednio\\n");','    } else {','        printf("Zimno\\n");','    }','    return 0;','}'],
+t=>{t.s(2,'Start.');
+t.decl('temp','int',15);t.s(3,'temp = 15.');
+t.s(4,'Sprawdzamy: 15 > 20? NIE (fałsz), więc pomijamy cały pierwszy blok.');
+t.s(6,'Sprawdzamy kolejny warunek: 15 > 10? TAK (prawda).');
+t.print('Srednio\n');t.s(7,'Wykonuje się ten blok. Reszta (else) zostaje pominięta.');
+t.s(11,'Koniec. Wykonał się dokładnie jeden z trzech bloków.')})},
+{title:'Przykład 2: pętla for (suma 1+2+3+4)',make:()=>trace([
+'#include <stdio.h>','int main(void) {','    int suma = 0;','    for (int i = 1; i <= 4; i++) {','        suma = suma + i;','    }','    printf("Suma = %d\\n", suma);','    return 0;','}'],
+t=>{t.s(2,'Start.');
+t.decl('suma','int',0);t.s(3,'suma = 0 – to nasz „akumulator”.');
+t.decl('i','int',1);t.s(4,'Początek pętli: i = 1 (wykonuje się tylko raz).');
+for(let k=1;k<=4;k++){
+ t.s(4,`Warunek: i <= 4, czyli ${k} <= 4? TAK → wchodzimy do środka.`);
+ t.set('suma',t.get('suma')+k);t.s(5,`suma = suma + i → ${t.get('suma')-k} + ${k} = ${t.get('suma')}.`);
+ t.set('i',k+1);t.s(4,`Koniec obrotu: i++ zwiększa i do ${k+1}.`);}
+t.s(4,'Warunek: 5 <= 4? NIE → pętla się kończy.');
+t.print('Suma = 10\n');t.s(7,'Po pętli wypisujemy wynik: 1+2+3+4 = 10.');
+t.s(8,'Koniec.')})},
+{title:'Przykład 3: pętla while (silnia 5!)',make:()=>trace([
+'#include <stdio.h>','int main(void) {','    int n = 5, wynik = 1;','    while (n > 1) {','        wynik = wynik * n;','        n--;','    }','    printf("5! = %d\\n", wynik);','    return 0;','}'],
+t=>{t.s(2,'Start.');
+t.decl('n','int',5);t.decl('wynik','int',1);t.s(3,'n = 5, wynik = 1.');
+while(t.get('n')>1){
+ const n=t.get('n');
+ t.s(4,`Warunek: n > 1, czyli ${n} > 1? TAK.`);
+ t.set('wynik',t.get('wynik')*n);t.s(5,`wynik = wynik * n → ${t.get('wynik')/n} * ${n} = ${t.get('wynik')}.`);
+ t.set('n',n-1);t.s(6,`n-- zmniejsza n do ${n-1}.`);}
+t.s(4,'Warunek: 1 > 1? NIE → koniec pętli.');
+t.print('5! = 120\n');t.s(8,'5·4·3·2·1 = 120.');
+t.s(9,'Koniec. Gdyby nie było n--, pętla trwałaby w nieskończoność!')})}
+],
+quiz:[
+{q:'Ile razy wykona się ciało pętli  for (int i = 0; i < 3; i++) ?',o:['2','3','4','Nieskończenie wiele'],a:1,w:'i przyjmuje wartości 0, 1, 2 – trzy obroty. Przy i = 3 warunek jest fałszywy.'},
+{q:'Co robi  if (x = 5)  ?',o:['Porównuje x z 5','Wpisuje 5 do x i warunek jest zawsze prawdziwy','Zgłasza błąd składni','Sprawdza, czy x jest różne od 5'],a:1,w:'= to przypisanie. Porównanie to ==. Częsty błąd początkujących.'},
+{q:'Czym różni się do…while od while?',o:['Niczym','do…while wykonuje ciało przynajmniej raz','while wykonuje ciało przynajmniej raz','do…while jest szybsze'],a:1,w:'do…while sprawdza warunek dopiero po pierwszym wykonaniu bloku.'},
+{q:'Co się stanie, gdy w pętli while (n > 1) zabraknie instrukcji zmieniającej n?',o:['Pętla wykona się raz','Pętla będzie nieskończona','Kompilator zgłosi błąd','n zostanie wyzerowane'],a:1,w:'Warunek nigdy nie stanie się fałszywy, więc program „zawiesi się”.'}
+]}
+];
+const prog5=(title,code,input='')=>({title,make:()=>runC(code,input)});
+LESSONS.push({id:'l5',title:'5. Funkcje i rekurencja',
+theory:`
+<p><b>Funkcja</b> to nazwany kawałek programu, który możesz wywołać wiele razy. Dzięki temu dzielisz duży problem na małe części (to właśnie jest programowanie <i>proceduralne</i>).</p>
+<ul>
+<li>Anatomia: <code>int kwadrat(int x) { return x * x; }</code> – typ wyniku, nazwa, <b>parametry formalne</b> w nawiasie, ciało. Przy wywołaniu <code>kwadrat(3)</code> liczba 3 to <b>parametr aktualny</b>.</li>
+<li>Każde wywołanie dostaje własną <b>ramkę na stosie</b>: tam leżą jej parametry i zmienne lokalne. Po powrocie ramka znika. Zobaczysz to w oknie „Stos wywołań”.</li>
+<li>Parametry są przekazywane <b>przez wartość</b>: funkcja dostaje KOPIĘ, więc zmiana parametru nie zmienia zmiennej w miejscu wywołania.</li>
+<li><code>void</code> – funkcja, która nic nie zwraca (to jest „procedura”).</li>
+<li><b>Deklaracja</b> (prototyp) <code>int dodaj(int a, int b);</code> mówi kompilatorowi, że funkcja istnieje; <b>definicja</b> zawiera jej ciało. Funkcję trzeba zadeklarować przed pierwszym użyciem.</li>
+<li><b>Zmienna globalna</b> żyje przez cały program i jest widoczna wszędzie; <b>lokalna</b> tylko w swojej funkcji (lub bloku). Globalnych używaj ostrożnie.</li>
+<li><b>Rekurencja</b>: funkcja wywołuje samą siebie. Potrzebuje <b>warunku zakończenia</b>, inaczej stos się przepełni. Z <code>math.h</code> masz m.in. <code>sqrt</code>, <code>pow</code>, <code>fabs</code>.</li></ul>
+<p>Możesz też zmieniać te programy w zakładce „Pracownia”.</p>`,
+examples:[
+prog5('Przykład 1: funkcja i jej wynik',`#include <stdio.h>
+
+int kwadrat(int x) {
+    return x * x;
+}
+
+int main(void) {
+    int a = 3;
+    int b = kwadrat(a);
+    printf("%d\\n", b);
+    return 0;
+}
+`),
+prog5('Przykład 2: przekazywanie przez wartość',`#include <stdio.h>
+
+void zwieksz(int x) {
+    x = x + 10;
+}
+
+int main(void) {
+    int liczba = 5;
+    zwieksz(liczba);
+    printf("liczba = %d\\n", liczba);
+    return 0;
+}
+`),
+prog5('Przykład 3: rekurencja (silnia)',`#include <stdio.h>
+
+int silnia(int n) {
+    if (n <= 1) {
+        return 1;
+    }
+    return n * silnia(n - 1);
+}
+
+int main(void) {
+    printf("%d\\n", silnia(4));
+    return 0;
+}
+`),
+prog5('Przykład 4: prototyp i zmienna globalna',`#include <stdio.h>
+
+int licznik = 0;
+int dodaj(int a, int b);
+
+int main(void) {
+    int w = dodaj(2, 3);
+    printf("w=%d licznik=%d\\n", w, licznik);
+    return 0;
+}
+
+int dodaj(int a, int b) {
+    licznik++;
+    return a + b;
+}
+`)],
+quiz:[
+{q:'Funkcja void f(int x) { x = 99; } jest wywołana jako f(a). Co stanie się ze zmienną a?',o:['Zmieni się na 99','Nie zmieni się – funkcja dostała kopię','Program się nie skompiluje','a będzie zerem'],a:1,w:'W C parametry są przekazywane przez wartość: funkcja pracuje na kopii.'},
+{q:'Co jest potrzebne każdej funkcji rekurencyjnej?',o:['Zmienna globalna','Warunek zakończenia','Typ void','Prototyp'],a:1,w:'Bez warunku zakończenia funkcja woła samą siebie w nieskończoność i przepełnia stos.'},
+{q:'Co dzieje się z lokalnymi zmiennymi funkcji po jej zakończeniu?',o:['Zostają w pamięci na zawsze','Znikają razem z ramką ze stosu','Stają się globalne','Są zerowane, ale istnieją'],a:1,w:'Ramka funkcji jest zdejmowana ze stosu, a jej zmienne przestają istnieć.'},
+{q:'Czym różni się deklaracja funkcji od definicji?',o:['Niczym','Deklaracja zapowiada funkcję (bez ciała), definicja zawiera ciało','Definicja jest tylko dla void','Deklaracja jest wykonywana jako pierwsza'],a:1,w:'Prototyp pozwala użyć funkcji przed miejscem, w którym jest zdefiniowana.'},
+{q:'Ile ramek na stosie jest w najgłębszym momencie wywołania silnia(4) z main?',o:['2','3','5','4'],a:2,w:'main, silnia(4), silnia(3), silnia(2), silnia(1) – razem 5.'}
+]});
+const COMING=['6. Tablice i struktury','7. Wskaźniki','8. Bity, liczby i znaki','9. Pliki','10. Błędy i testowanie'];
+
+// ---- Mini interpreter of a C subset (lessons 3-4). Errors are thrown as {line,msg}.
+const TYPES=['int','float','double','char'],ESC={n:'\n',t:'\t','0':'\0'};
+const unesc=s=>s.replace(/\\(.)/g,(_,c)=>c in ESC?ESC[c]:c);
+function lex(src){
+  const T=[],re=/(\s+|\/\/[^\n]*|\/\*[\s\S]*?\*\/|#[^\n]*)|(\d+\.\d*|\.\d+|\d+)([fF]?)|([A-Za-z_]\w*)|"((?:\\.|[^"\\\n])*)"|'((?:\\.|[^'\\\n])+)'|(\+\+|--|<=|>=|==|!=|&&|\|\||[+\-*\/%]=|[-+*\/%<>=!&(){};,?:\[\]])/y;
+  let line=1;
+  for(let i=0;i<src.length;i=re.lastIndex){
+    re.lastIndex=i;const m=re.exec(src);
+    if(!m)throw{line,msg:`nieznany znak „${src[i]}”`};
+    if(m[1]!==undefined){line+=(m[1].match(/\n/g)||[]).length;continue}
+    const tk={line,pos:i,end:re.lastIndex};
+    if(m[2]!==undefined){const fl=m[2].includes('.')||m[3];Object.assign(tk,{k:'num',t:fl?(m[3]?'float':'double'):'int',v:m[3]?Math.fround(+m[2]):+m[2]})}
+    else if(m[4]!==undefined)Object.assign(tk,{k:'id',v:m[4]});
+    else if(m[5]!==undefined)Object.assign(tk,{k:'str',v:unesc(m[5])});
+    else if(m[6]!==undefined)Object.assign(tk,{k:'chr',v:unesc(m[6]).charCodeAt(0)});
+    else Object.assign(tk,{k:'op',v:m[7]});
+    T.push(tk);
+  }
+  return T;
+}
+function parse(toks,src){
+  let p=0;
+  const peek=()=>toks[p]||{k:'eof',v:'koniec pliku',line:toks.length?toks[toks.length-1].line:1};
+  const err=(msg,t=peek())=>{throw{line:t.line,msg}};
+  const isOp=v=>peek().k==='op'&&peek().v===v;
+  const eat=v=>{if(!isOp(v)){const pr=toks[p-1]||peek();err(`brakuje „${v}” (po „${pr.v}”)`,pr)}return toks[p++]};
+  const fin=(n,s)=>{n.src=src.slice(s.pos,toks[p-1].end);n.line=s.line;n.pos=s.pos;return n};
+  const PR={'||':1,'&&':2,'==':3,'!=':3,'<':4,'>':4,'<=':4,'>=':4,'+':5,'-':5,'*':6,'/':6,'%':6};
+  function expr(){
+    const s=peek(),l=ternary(),t=peek();
+    if(t.k==='op'&&['=','+=','-=','*=','/=','%='].includes(t.v)){
+      if(l.n!=='var')err('po lewej stronie przypisania musi stać zmienna',t);
+      p++;return fin({n:'asg',op:t.v,name:l.name,r:expr()},s);
+    }
+    return l;
+  }
+  function ternary(){const s=peek(),c=bin(1);if(!isOp('?'))return c;p++;const a=expr();eat(':');return fin({n:'tern',c,a,b:ternary()},s)}
+  function bin(min){
+    const s=peek();let l=unary();
+    for(;;){const t=peek(),pr=t.k==='op'&&PR[t.v];if(!pr||pr<min)return l;p++;l=fin({n:'bin',op:t.v,l,r:bin(pr+1)},s)}
+  }
+  function unary(){
+    const s=peek();
+    if(s.k==='op'&&['!','-','+'].includes(s.v)){p++;return fin({n:'un',op:s.v,e:unary()},s)}
+    if(s.k==='op'&&(s.v==='++'||s.v==='--')){p++;const e=unary();if(e.n!=='var')err('++ i -- działają tylko na zmiennej',s);return fin({n:'inc',op:s.v,name:e.name,post:false},s)}
+    if(s.k==='op'&&s.v==='&'){p++;const e=unary();if(e.n!=='var')err('& działa tylko na zmiennej',s);return fin({n:'addr',name:e.name},s)}
+    if(isOp('(')&&toks[p+1]&&TYPES.includes(toks[p+1].v)&&toks[p+2]&&toks[p+2].v===')'){p+=3;return fin({n:'cast',t:toks[p-2].v,e:unary()},s)}
+    return postfix();
+  }
+  function postfix(){
+    const s=peek();let e=primary();
+    while(isOp('++')||isOp('--')){if(e.n!=='var')err('++ i -- działają tylko na zmiennej');e=fin({n:'inc',op:toks[p++].v,name:e.name,post:true},s)}
+    return e;
+  }
+  function primary(){
+    const s=peek();
+    if(s.k==='num'){p++;return fin({n:'num',t:s.t,v:s.v},s)}
+    if(s.k==='chr'){p++;return fin({n:'num',t:'int',v:s.v},s)}
+    if(s.k==='str'){p++;return fin({n:'str',v:s.v},s)}
+    if(s.k==='id'){
+      p++;
+      if(!isOp('('))return fin({n:'var',name:s.v},s);
+      p++;const args=[];
+      if(!isOp(')')){args.push(expr());while(isOp(',')){p++;args.push(expr())}}
+      eat(')');return fin({n:'call',name:s.v,args},s);
+    }
+    if(isOp('(')){p++;const e=expr();eat(')');e.src=src.slice(s.pos,toks[p-1].end);return e}
+    err(`nieoczekiwane „${s.v}” – tu powinna być wartość lub zmienna`);
+  }
+  function decl(){
+    const t=toks[p++].v,items=[];
+    do{
+      const id=peek();if(id.k!=='id')err('po nazwie typu powinna stać nazwa zmiennej');p++;
+      if(isOp('['))err('tablice będą w kolejnej lekcji');
+      let init=null;if(isOp('=')){p++;init=expr()}
+      items.push({name:id.v,init});
+    }while(isOp(',')&&++p);
+    return{n:'decl',t,items,line:toks[p-1].line};
+  }
+  function stmt(){
+    const s=peek();
+    if(isOp('{')){p++;const body=[];while(!isOp('}')){if(peek().k==='eof')err('brakuje „}” na końcu programu',toks[p-1]);body.push(stmt())}p++;return{n:'block',body,line:s.line}}
+    if(isOp(';')){p++;return{n:'empty',line:s.line}}
+    if(s.k==='id'){
+      const v=s.v;
+      if(TYPES.includes(v)){const d=decl();eat(';');d.line=s.line;return d}
+      if(['long','short','unsigned','signed','void','struct'].includes(v))err(`typ „${v}” nie jest jeszcze obsługiwany w pracowni`);
+      if(v==='if'){p++;eat('(');const c=expr();eat(')');const a=stmt();let b=null;if(peek().v==='else'){p++;b=stmt()}return{n:'if',c,a,b,line:s.line}}
+      if(v==='while'){p++;eat('(');const c=expr();eat(')');return{n:'while',c,body:stmt(),line:s.line}}
+      if(v==='do'){p++;const body=stmt();if(peek().v!=='while')err('po ciele do{…} brakuje „while”');p++;eat('(');const c=expr();eat(')');eat(';');return{n:'do',c,body,line:s.line}}
+      if(v==='for'){
+        p++;eat('(');let init=null,cond=null,step=null;
+        if(!isOp(';')){if(TYPES.includes(peek().v)){init=decl();init.line=s.line}else init=expr()}
+        eat(';');if(!isOp(';'))cond=expr();eat(';');if(!isOp(')'))step=expr();eat(')');
+        return{n:'for',init,cond,step,body:stmt(),line:s.line};
+      }
+      if(v==='break'||v==='continue'){p++;eat(';');return{n:v,line:s.line}}
+      if(v==='return'){p++;const e=isOp(';')?null:expr();eat(';');return{n:'return',e,line:s.line}}
+    }
+    const e=expr();eat(';');return{n:'expr',e,line:s.line};
+  }
+  const funcs={},globals=[],declPos={};
+  while(p<toks.length){
+    const s=peek();
+    if(!TYPES.includes(s.v)&&s.v!=='void')err('na najwyższym poziomie oczekiwano funkcji lub zmiennej globalnej (np. „int main(void) {”)');
+    if(!(toks[p+1]&&toks[p+1].k==='id'&&toks[p+2]&&toks[p+2].v==='(')){
+      if(s.v==='void')err('zmienna nie może mieć typu void');
+      const d=decl();eat(';');d.line=s.line;globals.push(d);continue;
+    }
+    const name=toks[p+1].v,params=[];p+=3;
+    if(peek().v==='void'&&toks[p+1]&&toks[p+1].v===')')p++;
+    else if(!isOp(')'))do{
+      const t=peek();if(!TYPES.includes(t.v))err('parametr musi zaczynać się od typu (int, float, double, char)');p++;
+      let pn='';if(peek().k==='id'){pn=peek().v;p++}
+      params.push({t:t.v,name:pn});
+    }while(isOp(',')&&++p);
+    eat(')');
+    const f=funcs[name]||(funcs[name]={name,body:null});
+    Object.assign(f,{ret:s.v,params});
+    if(!(name in declPos))declPos[name]=s.pos;
+    if(isOp(';')){p++;continue}
+    if(!isOp('{'))err('po nagłówku funkcji brakuje „{” (albo „;” przy prototypie)',toks[p-1]);
+    if(f.body)err(`funkcja „${name}” jest zdefiniowana drugi raz`,s);
+    f.body=stmt();f.body.endLine=toks[p-1].line;f.line=s.line;
+  }
+  if(!funcs.main||!funcs.main.body)err('brakuje funkcji main – każdy program w C zaczyna się od main',toks[toks.length-1]);
+  return{funcs,globals,declPos};
+}
+function runC(src,input){
+  const{funcs,globals,declPos}=parse(lex(src),src);
+  const SZ={int:4,float:4,double:8,char:1},vars=[],steps=[],frames=[];
+  let out='',off=0,ev=[],ip=0,error=null,G=0,nid=0;
+  const rt=(msg,line)=>({line,msg});
+  const conv=(t,x)=>t==='int'?Math.trunc(x)|0:t==='char'?Math.trunc(x)<<24>>24:t==='float'?Math.fround(x):x;
+  const find=(n,line)=>{
+    const top=frames.length?frames[frames.length-1].base:0;
+    for(let i=vars.length-1;i>=top;i--)if(vars[i].n===n)return vars[i];
+    for(let i=G-1;i>=0;i--)if(vars[i].n===n)return vars[i];
+    throw rt(`zmienna „${n}” nie istnieje – nie została zadeklarowana albo jest poza swoim blokiem {} lub funkcją`,line)};
+  const mark=()=>[vars.length,off],release=m=>{vars.length=m[0];off=m[1]};
+  const declare=(t,n,v)=>{off=Math.ceil(off/SZ[t])*SZ[t];vars.push({n,t,v,id:++nid,fr:frames.length-1,a:'0x'+(0x7ffc1000+off).toString(16)});off+=SZ[t]};
+  const mk=(line,note)=>({line,note,out,vars:vars.map(x=>({...x})),stack:frames.map(f=>f.label)});
+  const step=(line,note)=>{
+    if(steps.length>=3000)throw rt('Program wykonuje się zbyt długo (ponad 3000 kroków) – czy pętla nie jest nieskończona?',line);
+    steps.push(mk(line,[note,...ev].filter(Boolean).join(' · ')));ev=[];
+  };
+  const MATH={sqrt:Math.sqrt,pow:Math.pow,fabs:Math.abs,floor:Math.floor,ceil:Math.ceil,sin:Math.sin,cos:Math.cos,tan:Math.tan,exp:Math.exp,log:Math.log};
+  function callUser(fn,args,e){
+    if(!fn.body)throw rt(`funkcja „${fn.name}” ma tylko prototyp, a nie ma ciała (definicji)`,e.line);
+    if(args.length!==fn.params.length)throw rt(`funkcja „${fn.name}” przyjmuje ${fn.params.length} argumentów, a podano ${args.length}`,e.line);
+    if(frames.length>=100)throw rt('Przepełnienie stosu (stack overflow) – rekurencja bez warunku zakończenia?',e.line);
+    const saved=ev,label=`${fn.name}(${args.map((a,i)=>fmt(conv(fn.params[i].t,a.v),fn.params[i].t)).join(', ')})`;
+    ev=[];frames.push({label,base:vars.length,off});
+    fn.params.forEach((p,i)=>declare(p.t,p.name,conv(p.t,args[i].v)));
+    step(fn.line,`Wywołanie ${label}: na stosie powstaje nowa ramka, parametry dostają KOPIE wartości`);
+    const r=exec(fn.body);let rv=r&&'ret'in r?r.ret:0;
+    if(!(r&&'ret'in r))step(fn.body.endLine,`Koniec funkcji ${fn.name} – ramka znika ze stosu`);
+    const f=frames.pop();vars.length=f.base;off=f.off;ev=saved;
+    if(fn.ret==='void')return{t:'void',v:0};
+    rv=conv(fn.ret,rv);ev.push(`${label} zwróciło ${fmt(rv,fn.ret)}`);return{t:fn.ret,v:rv};
+  }
+  const rank=(a,b)=>a.t==='double'||b.t==='double'?'double':a.t==='float'||b.t==='float'?'float':'int';
+  function arith(op,a,b,line){
+    if(a.t==='str'||b.t==='str'||a.t==='ptr'||b.t==='ptr')throw rt('na tekstach i adresach nie da się liczyć',line);
+    const x=a.v,y=b.v,cmp={'<':x<y,'>':x>y,'<=':x<=y,'>=':x>=y,'==':x===y,'!=':x!==y};
+    if(op in cmp)return{t:'int',v:+cmp[op]};
+    const t=rank(a,b);let r;
+    if(op==='+')r=x+y;else if(op==='-')r=x-y;else if(op==='*')r=x*y;
+    else if(op==='/'){if(t==='int'&&y===0)throw rt('dzielenie przez zero!',line);r=t==='int'?Math.trunc(x/y):x/y}
+    else{if(t!=='int')throw rt('operator % działa tylko na liczbach całkowitych',line);if(y===0)throw rt('dzielenie przez zero (reszta z 0)!',line);r=x%y}
+    return{t,v:conv(t,r)};
+  }
+  function printf(args,line){
+    const f=args[0];if(!f||f.t!=='str')throw rt('printf potrzebuje tekstu w cudzysłowie jako pierwszego argumentu',line);
+    let k=1;
+    const text=f.v.replace(/%([-0]*)(\d+)?(?:\.(\d+))?l?([dicfsuxX%])/g,(_,fl,w,pr,c)=>{
+      if(c==='%')return'%';
+      const a=args[k++];if(!a)throw rt('w printf jest więcej znaczników % niż argumentów',line);
+      let s;
+      if('diu'.includes(c))s=String(Math.trunc(a.v));
+      else if(c==='x'||c==='X'){s=(a.v>>>0).toString(16);if(c==='X')s=s.toUpperCase()}
+      else if(c==='f')s=Number(a.v).toFixed(pr===undefined?6:+pr);
+      else if(c==='c')s=String.fromCharCode(a.v);
+      else{if(a.t!=='str')throw rt('%s wymaga tekstu (tablice znaków będą później)',line);s=a.v}
+      return w?(fl.includes('-')?s.padEnd(+w):s.padStart(+w,fl.includes('0')&&c!=='s'?'0':' ')):s;
+    });
+    out=(out+text).slice(0,5000);ev.push('Wypisano: „'+text.replace(/\n/g,'⏎')+'”');
+  }
+  function scanf(args,line){
+    const f=args[0];if(!f||f.t!=='str')throw rt('scanf potrzebuje tekstu w cudzysłowie, np. "%d"',line);
+    let n=0,k=1;
+    for(const m of f.v.matchAll(/%l?([dfic])/g)){
+      const a=args[k++];if(!a||a.t!=='ptr')throw rt('scanf potrzebuje adresu zmiennej – dopisz & przed nazwą (np. &x)',line);
+      const v=find(a.v,line);
+      while(/\s/.test(input[ip]||''))ip++;
+      const rest=input.slice(ip);let val;
+      if(m[1]==='c'){if(!rest)throw rt('scanf nie ma już danych w polu „Dane wejściowe”',line);val=rest.charCodeAt(0);ip++}
+      else{const mm=rest.match(m[1]==='f'?/^[+-]?(\d+\.?\d*|\.\d+)/:/^[+-]?\d+/);if(!mm)throw rt('scanf nie znalazł liczby w polu „Dane wejściowe” – wpisz ją tam przed uruchomieniem',line);ip+=mm[0].length;val=+mm[0]}
+      v.v=conv(v.t,val);ev.push(`Wczytano ${fmt(v.v,v.t)} do ${v.n}`);n++;
+    }
+    return{t:'int',v:n};
+  }
+  function evalx(e){
+    switch(e.n){
+      case'num':return{t:e.t,v:e.v};
+      case'str':return{t:'str',v:e.v};
+      case'addr':find(e.name,e.line);return{t:'ptr',v:e.name};
+      case'var':{const v=find(e.name,e.line);if(v.v===undefined){ev.push(`UWAGA: ${v.n} nie ma wartości (w prawdziwym C to śmieci)`);return{t:v.t,v:0}}return{t:v.t,v:v.v}}
+      case'un':{const x=evalx(e.e);return e.op==='!'?{t:'int',v:+(x.v===0)}:{t:rank(x,x),v:e.op==='-'?-x.v:x.v}}
+      case'bin':{
+        if(e.op==='&&'||e.op==='||'){const a=evalx(e.l).v!==0;return{t:'int',v:+(e.op==='&&'?a&&evalx(e.r).v!==0:a||evalx(e.r).v!==0)}}
+        return arith(e.op,evalx(e.l),evalx(e.r),e.line);
+      }
+      case'tern':return evalx(e.c).v!==0?evalx(e.a):evalx(e.b);
+      case'cast':return{t:e.t,v:conv(e.t,evalx(e.e).v)};
+      case'asg':{
+        const v=find(e.name,e.line),r=evalx(e.r);
+        if(r.t==='str'||r.t==='ptr')throw rt('do zmiennej liczbowej nie można wpisać tekstu',e.line);
+        const x=e.op==='='?r:arith(e.op[0],{t:v.t,v:v.v===undefined?0:v.v},r,e.line);
+        v.v=conv(v.t,x.v);ev.push(`${v.n} ← ${fmt(v.v,v.t)}`);return{t:v.t,v:v.v};
+      }
+      case'inc':{
+        const v=find(e.name,e.line),old=v.v===undefined?0:v.v;
+        v.v=conv(v.t,old+(e.op==='++'?1:-1));ev.push(`${v.n} ← ${fmt(v.v,v.t)}`);return{t:v.t,v:e.post?old:v.v};
+      }
+      case'call':{
+        const args=e.args.map(evalx);
+        if(e.name==='printf'){printf(args,e.line);return{t:'int',v:0}}
+        if(e.name==='scanf')return scanf(args,e.line);
+        const fn=funcs[e.name];
+        if(fn){
+          if(!(declPos[e.name]<e.pos))throw rt(`funkcja „${e.name}” jest użyta, zanim została zadeklarowana – dopisz jej prototyp przed main (deklaracja ≠ definicja)`,e.line);
+          return callUser(fn,args,e);
+        }
+        if(e.name in MATH)return{t:'double',v:MATH[e.name](...args.map(a=>a.v))};
+        if(e.name==='abs')return{t:'int',v:Math.abs(args[0].v)};
+        throw rt(`nieznana funkcja „${e.name}”`,e.line);
+      }
+    }
+  }
+  const yes=c=>c?'prawda – wykonujemy ciało':'fałsz – koniec';
+  function exec(s){
+    switch(s.n){
+      case'block':{const m=mark();for(const x of s.body){const r=exec(x);if(r){release(m);return r}}release(m);return}
+      case'decl':{
+        const notes=[];
+        for(const it of s.items){
+          let v;if(it.init){const x=evalx(it.init);if(x.t==='str'||x.t==='ptr')throw rt('do zmiennej liczbowej nie można wpisać tekstu',s.line);v=conv(s.t,x.v)}
+          declare(s.t,it.name,v);notes.push(`Powstaje zmienna ${it.name} (${s.t})`+(it.init?` o wartości ${fmt(v,s.t)}`:' – bez wartości, więc leżą w niej śmieci'));
+        }
+        return step(s.line,notes.join('. '));
+      }
+      case'expr':evalx(s.e);return step(s.line,ev.length?'':`Wykonano: ${s.e.src}`);
+      case'if':{
+        const c=evalx(s.c).v!==0;step(s.line,`Warunek ${s.c.src} → ${c?'prawda':'fałsz'}`);
+        return c?exec(s.a):s.b?exec(s.b):undefined;
+      }
+      case'while':for(;;){
+        const c=evalx(s.c).v!==0;step(s.line,`Warunek ${s.c.src} → ${yes(c)}`);if(!c)return;
+        const r=exec(s.body);if(r==='break')return;if(r&&r!=='continue')return r;
+      }
+      case'do':for(;;){
+        const r=exec(s.body);if(r==='break')return;if(r&&r!=='continue')return r;
+        const c=evalx(s.c).v!==0;step(s.line,`Warunek ${s.c.src} → ${yes(c)}`);if(!c)return;
+      }
+      case'for':{
+        const m=mark();
+        if(s.init){if(s.init.n==='decl')exec(s.init);else{evalx(s.init);step(s.line,ev.length?'':`Wykonano: ${s.init.src}`)}}
+        for(;;){
+          if(s.cond){const c=evalx(s.cond).v!==0;step(s.line,`Warunek ${s.cond.src} → ${yes(c)}`);if(!c)break}
+          const r=exec(s.body);if(r==='break')break;if(r&&r!=='continue'){release(m);return r}
+          if(s.step){evalx(s.step);step(s.line,'Koniec obrotu')}
+        }
+        return release(m);
+      }
+      case'break':step(s.line,'break – wychodzimy z pętli');return'break';
+      case'continue':step(s.line,'continue – przechodzimy do następnego obrotu');return'continue';
+      case'return':{const v=s.e?evalx(s.e).v:0;step(s.line,`return ${v} – ${frames.length===1?'koniec programu':'wracamy do miejsca wywołania'}`);return{ret:v}}
+    }
+  }
+  try{globals.forEach(exec);G=vars.length;callUser(funcs.main,[],{line:funcs.main.line})}
+  catch(e){if(!e.msg)throw e;error=e.msg;steps.push(mk(e.line,'❌ Błąd wykonania: '+e.msg))}
+  return{code:src.split('\n'),steps,error};
+}
+
+const PRESETS=[
+{n:'Suma 1..n',i:'4',c:`#include <stdio.h>
+
+int main(void) {
+    int n, suma = 0;
+    printf("Podaj n: ");
+    scanf("%d", &n);
+    for (int i = 1; i <= n; i++) {
+        suma = suma + i;
+    }
+    printf("Suma = %d\\n", suma);
+    return 0;
+}
+`},
+{n:'Parzysta?',i:'7',c:`#include <stdio.h>
+
+int main(void) {
+    int x;
+    scanf("%d", &x);
+    if (x % 2 == 0) {
+        printf("%d jest parzysta\\n", x);
+    } else {
+        printf("%d jest nieparzysta\\n", x);
+    }
+    return 0;
+}
+`},
+{n:'Silnia',i:'5',c:`#include <stdio.h>
+
+int main(void) {
+    int n, wynik = 1;
+    scanf("%d", &n);
+    while (n > 1) {
+        wynik *= n;
+        n--;
+    }
+    printf("Silnia = %d\\n", wynik);
+    return 0;
+}
+`}];
+function lab(m){
+  m.append($('h2','','✍ Pracownia: pisz własny kod'),$('div','card','<p>Napisz program w C, kliknij <b>Uruchom</b> i oglądaj go krok po kroku, tak jak przykłady. Działa: <code>int float double char</code>, <code>printf</code>, <code>scanf</code>, <code>if/else</code>, <code>for while do</code>, <code>break continue</code>, własne funkcje, rekurencja i zmienne globalne. Tablice, struktury i wskaźniki dojdą w kolejnych lekcjach. Wejście programu to <code>int main(void) { … }</code>.</p>'));
+  let saved='';try{saved=localStorage.getItem('ckkcode')||''}catch(e){}
+  const ta=$('textarea');ta.rows=14;ta.spellcheck=false;ta.value=saved||PRESETS[0].c;
+  const inp=$('input','in');inp.value=saved?'':PRESETS[0].i;inp.placeholder='np. 7 5';
+  ta.onkeydown=e=>{if(e.key==='Tab'){e.preventDefault();document.execCommand('insertText',false,'    ')}};
+  ta.oninput=()=>{try{localStorage.setItem('ckkcode',ta.value)}catch(e){}};
+  const res=$('div');
+  const run=()=>{
+    res.innerHTML='';
+    try{
+      const T=runC(ta.value,inp.value);
+      if(T.error){const d=$('div','card err');d.textContent='Program zatrzymał się z błędem – zobacz ostatni krok.';res.append(d)}
+      res.append(stepper({title:'Twój program',make:()=>T}));
+    }catch(e){if(!e.msg)throw e;const d=$('div','card err');d.textContent=`Błąd w linii ${e.line}: ${e.msg}`;res.append(d)}
+  };
+  const btns=$('div','btns'),go=$('button','pri','▶ Uruchom');go.onclick=run;btns.append(go);
+  PRESETS.forEach(p=>{const b=$('button','','Przykład: '+p.n);b.onclick=()=>{ta.value=p.c;inp.value=p.i;ta.oninput();run()};btns.append(b)});
+  m.append(ta,$('div','','Dane wejściowe (to, co „wpisujesz na klawiaturze” dla scanf):'),inp,btns,res);
+  run();
+}
+
+let prog={};try{prog=JSON.parse(localStorage.getItem('ckk')||'{}')}catch(e){}
+const save=()=>{try{localStorage.setItem('ckk',JSON.stringify(prog))}catch(e){}};
+const $=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!==undefined)e.innerHTML=h;return e};
+let cur=0;
+
+function renderNav(){
+  const nav=document.getElementById('nav');nav.innerHTML='';
+  LESSONS.forEach((l,i)=>{const b=$('button',i===cur?'on':'',l.title+(prog[l.id]!=null?` — ${prog[l.id]}/${l.quiz.length}`:''));b.onclick=()=>{cur=i;render()};nav.append(b)});
+  const lb=$('button',cur==='lab'?'on':'','✍ Pracownia: własny kod');lb.onclick=()=>{cur='lab';render()};nav.append(lb);
+  COMING.forEach(t=>{const b=$('button','',t+' (wkrótce)');b.disabled=true;nav.append(b)});
+}
+function stepper(ex){
+  const T=ex.make(),box=$('div','card');box.append($('b','',ex.title));
+  const grid=$('div','stepper');box.append(grid);
+  const code=$('div','code');T.code.forEach((l,i)=>{const d=$('div');d.innerHTML=`<i>${i+1}</i>`;d.append(document.createTextNode(l));code.append(d)});
+  const right=$('div'),vt=$('div'),stk=$('div','stk'),term=$('div','term');right.append(vt,stk,term);grid.append(code,right);
+  const note=$('div','note'),btns=$('div','btns');box.append(note,btns);
+  let i=-1,timer=null;
+  const show=()=>{
+    const s=T.steps[Math.max(i,0)],p=i>0?T.steps[i-1]:null;
+    [...code.children].forEach((d,k)=>d.classList.toggle('cur',i>=0&&k===s.line-1));
+    const hdr=s.stack&&(s.stack.length>1||s.vars.some(v=>v.fr===-1));
+    stk.textContent=s.stack?'Stos wywołań: '+(s.stack.join(' → ')||'(pusty)'):'';
+    let h='<table><tr><th>zmienna</th><th>typ</th><th>adres</th><th>wartość</th></tr>';
+    if(i<0||!s.vars.length)h+='<tr><td colspan=4 style="color:var(--mut)">(pamięć pusta)</td></tr>';
+    else s.vars.forEach((v,k)=>{
+      if(hdr&&(k===0||s.vars[k-1].fr!==v.fr))h+=`<tr><th colspan=4 style="background:var(--bd)">${v.fr===-1?'zmienne globalne':'ramka: '+esc(s.stack[v.fr])}</th></tr>`;
+      const old=p&&p.vars.find(x=>x.id!==undefined?x.id===v.id:x.n===v.n);const ch=!old||old.v!==v.v;h+=`<tr><td><b>${v.n}</b></td><td>${v.t}</td><td>${v.a}</td><td class="${ch&&i>0?'ch':''}">${fmt(v.v,v.t)}</td></tr>`});
+    vt.innerHTML=h+'</table>';
+    term.textContent=i<0?'$ ':'$ '+s.out;
+    note.textContent=i<0?'Kliknij „Dalej”, żeby wykonać pierwszy krok.':s.note;
+    cnt.textContent=`krok ${Math.max(i+1,0)} / ${T.steps.length}`;
+  };
+  const go=d=>{i=Math.min(T.steps.length-1,Math.max(-1,i+d));show()};
+  const stop=()=>{clearInterval(timer);timer=null;play.textContent='▶ Auto'};
+  const back=$('button','','◀ Wstecz'),next=$('button','pri','Dalej ▶'),rst=$('button','','Od nowa'),play=$('button','','▶ Auto'),cnt=$('span','cnt');
+  back.onclick=()=>{stop();go(-1)};next.onclick=()=>{stop();go(1)};rst.onclick=()=>{stop();i=-1;show()};
+  play.onclick=()=>{if(timer)return stop();if(i>=T.steps.length-1)i=-1;play.textContent='❚❚ Stop';timer=setInterval(()=>{if(i>=T.steps.length-1)stop();else go(1)},1400)};
+  btns.append(back,next,play,rst,cnt);show();return box;
+}
+function quiz(l){
+  const box=$('div','card');box.append($('h3','','Sprawdź się'));
+  let right=0,done=0;const score=$('div','score');
+  l.quiz.forEach((q,qi)=>{
+    const qb=$('div');qb.append($('p','',`<b>${qi+1}.</b> `));qb.firstChild.append(document.createTextNode(q.q));
+    const why=$('div','why');let locked=false;
+    q.o.forEach((o,oi)=>{const b=$('button','opt');b.textContent=o;b.onclick=()=>{
+      if(locked)return;locked=true;done++;
+      b.classList.add(oi===q.a?'ok':'bad');if(oi===q.a)right++;else qb.querySelectorAll('.opt')[q.a].classList.add('ok');
+      why.textContent=(oi===q.a?'✔ Dobrze. ':'✘ Nie. ')+q.w;
+      if(done===l.quiz.length){score.textContent=`Wynik: ${right}/${l.quiz.length}`+(right===l.quiz.length?' 🎉':' – wróć do przykładów i spróbuj jeszcze raz.');prog[l.id]=Math.max(prog[l.id]||0,right);save();renderNav()}};qb.append(b)});
+    qb.append(why);box.append(qb)});
+  box.append(score);return box;
+}
+function render(){
+  renderNav();const m=document.getElementById('main');m.innerHTML='';
+  if(cur==='lab'){lab(m);window.scrollTo(0,0);return}
+  const l=LESSONS[cur];
+  m.append($('h2','',l.title),$('div','card',l.theory),$('h3','','Zobacz, jak to działa'));
+  l.examples.forEach(e=>m.append(stepper(e)));m.append(quiz(l));window.scrollTo(0,0);
+}
+if(typeof document!=='undefined')render();
+</script>
+</body>
+</html>
