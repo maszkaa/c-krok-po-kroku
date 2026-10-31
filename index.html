@@ -377,7 +377,7 @@ function renderNav(){
 const txt=s=>esc(s).replace(/`([^`]+)`/g,'<code>$1</code>');
 function explainBox(code){
   const el=$('details','expl'),rows={};
-  el.append($('summary','','🧠 Co to wszystko znaczy? Wytłumacz mi ten kod linia po linii'));
+  el.append($('summary','','✿ Wytłumaczenie'));
   const list=$('div'),all=explainCode(code);
   list.append($('p','why','Każdy wiersz to jedna linia kodu i jej opis „po ludzku”. Pojedyncze klamry } pominąłem: każda po prostu kończy blok otwarty wyżej. Podczas oglądania programu krok po kroku podświetla się linia, która właśnie się wykonuje.'));
   all.forEach(r=>{const d=$('div','ex'),c=$('code');c.textContent=`${r.n}: ${r.code}`;const t=$('span');t.innerHTML=txt(r.text);d.append(c,t);list.append(d);rows[r.n]=d});
