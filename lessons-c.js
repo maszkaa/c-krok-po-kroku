@@ -441,7 +441,23 @@ theory:`
 <li><b>Kod źródłowy</b> to tekst, który piszesz. Komputer rozumie tylko kod maszynowy (zera i jedynki), więc <b>kompilator</b> tłumaczy cały program naraz na plik wykonywalny. <b>Interpreter</b> tłumaczy i wykonuje linia po linii (tak działa np. Python).</li>
 <li><b>Programowanie proceduralne</b>: program dzielimy na <b>procedury</b> (funkcje), czyli małe części, z których każda robi jedną rzecz. Programowanie <b>strukturalne</b>: kod składa się z prostych konstrukcji (po kolei, warunek, pętla), bez chaotycznych skoków.</li>
 <li><b>Narzędzia programisty:</b> edytor lub <b>IDE</b> (środowisko, np. Visual Studio), kompilator, <b>debugger</b> (wykonywanie programu krok po kroku – to właśnie robisz w tej aplikacji), system kontroli wersji <b>git</b> (historia zmian kodu; GitHub to serwis do jego trzymania).</li>
-<li><b>Jak się uczyć programowania:</b> pytaj, czytaj, podglądaj cudzy kod i <b>programuj, programuj, programuj</b>. Błędy to normalna część nauki.</li></ul>`,
+<li><b>Jak się uczyć programowania:</b> pytaj, czytaj, podglądaj cudzy kod i <b>programuj, programuj, programuj</b>. Błędy to normalna część nauki.</li></ul>
+<h3>Jak czytać okno „co się dzieje”</h3>
+<p>Pod każdym przykładem jest okno, w którym program wykonuje się <b>krok po kroku</b>. Klikaj <b>Dalej ▶</b> i patrz:</p>
+<ul>
+<li><b>Po lewej jest kod.</b> Różowa linia to ta, która wykonuje się właśnie teraz.</li>
+<li><b>Tabela „zmienna / typ / adres / wartość”</b> to pamięć komputera. Zmienna jest jak podpisane pudełko na wartość: <i>zmienna</i> to nazwa pudełka, <i>typ</i> mówi, co wolno do niego włożyć, a <i>wartość</i> to to, co w nim leży teraz. Mocniejszy róż w komórce znaczy, że wartość właśnie się zmieniła. <i>Adres</i> to numer miejsca w pamięci – na początku możesz go ignorować.</li>
+<li><b>Ciemne okno</b> to ekran programu, czyli to, co program wypisuje.</li>
+<li><b>Pasek pod spodem</b> opisuje po polsku, co zrobił ten krok. Możesz też cofnąć (<b>◀ Wstecz</b>) albo puścić <b>▶ Auto</b>.</li></ul>
+<p><b>Nic nie musisz instalować</b> – wszystko działa w przeglądarce. Każda lekcja kończy się <b>zadaniem</b>, w którym sama piszesz kod (jest podpowiedź i gotowe rozwiązanie), oraz quizem. W zakładce <b>Pracownia</b> możesz pisać własne programy.</p>
+<details><summary><b>Słowniczek początkującego</b> (kliknij, żeby rozwinąć)</summary><ul>
+<li><b>Zmienna</b> – nazwane miejsce w pamięci na wartość.</li>
+<li><b>Typ</b> – rodzaj wartości (np. <code>int</code> to liczba całkowita).</li>
+<li><b>Instrukcja</b> – jedno polecenie dla komputera, w C kończy się średnikiem.</li>
+<li><b>Funkcja</b> – nazwany kawałek programu, który można uruchomić (wywołać) w dowolnym miejscu.</li>
+<li><b>Warunek</b> – pytanie typu tak/nie (prawda/fałsz), np. „czy x jest większe od 5?”.</li>
+<li><b>Pętla</b> – powtarzanie fragmentu kodu wiele razy.</li>
+<li><b>Błąd składni</b> – literówka lub brak znaku w kodzie, przez który komputer nie rozumie programu.</li></ul></details>`,
 examples:[
 prog5('Przykład: problem → algorytm → program',`#include <stdio.h>
 
@@ -522,3 +538,292 @@ quiz:[
 {q:'Czym jest podejście zstępujące?',o:['Pisaniem programu od końca','Dzieleniem dużego problemu na mniejsze części','Szukaniem w tablicy od tyłu','Zapisem algorytmu pseudokodem'],a:1,w:'Rozbijasz zadanie na prostsze kroki, aż każdy da się łatwo zapisać.'},
 {q:'Ile porównań w najgorszym razie zrobi szukanie po kolei w tablicy 1000 elementów?',o:['1','10','1000','1 000 000'],a:2,w:'W najgorszym razie sprawdzisz każdy element, czyli tyle kroków, ile elementów.'}
 ]});
+
+// Mini tasks: the student writes code, tests compare the normalized output (whitespace collapsed).
+const TASKS={
+l1:[{title:'wypisz powitanie',
+desc:'<p>Zmień program tak, żeby wypisał dokładnie: <code>Hej, C!</code></p><p>Wskazówka: jedna instrukcja, a komentarz (<code>//</code>) możesz usunąć.</p>',
+starter:`#include <stdio.h>
+
+int main(void) {
+    // Wpisz tutaj instrukcję printf, która wypisze: Hej, C!
+    return 0;
+}
+`,tests:[{i:'',o:'Hej, C!'}],
+hint:'Użyj printf("tekst w cudzysłowie"); i pamiętaj o średniku na końcu. Dopisz \\n na końcu tekstu, żeby przejść do nowej linii.',
+sol:`#include <stdio.h>
+
+int main(void) {
+    printf("Hej, C!\\n");
+    return 0;
+}
+`}],
+l2:[{title:'zmień dane w algorytmie Euklidesa',
+desc:'<p>Ten program liczy największy wspólny dzielnik (NWD) dwóch liczb: dziś 48 i 18. Zmień <b>tylko liczby</b> w pierwszej linii funkcji tak, żeby program policzył NWD liczb <b>84 i 36</b> (wynik: <code>NWD = 12</code>). Kliknij też „Zobacz krok po kroku”, żeby podejrzeć, jak działa algorytm.</p>',
+starter:`#include <stdio.h>
+
+int main(void) {
+    int a = 48, b = 18;
+    while (b != 0) {
+        int reszta = a % b;
+        a = b;
+        b = reszta;
+    }
+    printf("NWD = %d\\n", a);
+    return 0;
+}
+`,tests:[{i:'',o:'NWD = 12'}],
+hint:'Zmień 48 na 84 i 18 na 36 w linii int a = ..., b = ...;',
+sol:`#include <stdio.h>
+
+int main(void) {
+    int a = 84, b = 36;
+    while (b != 0) {
+        int reszta = a % b;
+        a = b;
+        b = reszta;
+    }
+    printf("NWD = %d\\n", a);
+    return 0;
+}
+`}],
+l3:[{title:'pole prostokąta',
+desc:'<p>Program wczytuje długości boków <code>a</code> i <code>b</code>. Dopisz instrukcje, które policzą pole (<code>a</code> razy <code>b</code>) i wypiszą je w formacie: <code>Pole = 12</code>.</p>',
+starter:`#include <stdio.h>
+
+int main(void) {
+    int a, b;
+    scanf("%d %d", &a, &b);
+    // Policz pole i wypisz je: Pole = 12
+    return 0;
+}
+`,tests:[{i:'3 4',o:'Pole = 12'},{i:'10 5',o:'Pole = 50'},{i:'1 1',o:'Pole = 1'}],
+hint:'Mnożenie to gwiazdka: a * b. Wypisz przez printf("Pole = %d\\n", ...);',
+sol:`#include <stdio.h>
+
+int main(void) {
+    int a, b;
+    scanf("%d %d", &a, &b);
+    int pole = a * b;
+    printf("Pole = %d\\n", pole);
+    return 0;
+}
+`}],
+l4:[{title:'odliczanie',
+desc:'<p>Wczytaj liczbę <code>n</code> i wypisz liczby od <code>n</code> w dół do 1 (każda po spacji), a na końcu napis <code>Start!</code>. Dla n = 3 ma wyjść: <code>3 2 1 Start!</code></p>',
+starter:`#include <stdio.h>
+
+int main(void) {
+    int n;
+    scanf("%d", &n);
+    // Wypisz n, n-1, ..., 1 oraz Start!
+    return 0;
+}
+`,tests:[{i:'3',o:'3 2 1 Start!'},{i:'5',o:'5 4 3 2 1 Start!'},{i:'1',o:'1 Start!'}],
+hint:'Pętla for (int i = n; i >= 1; i--) { ... } z printf("%d ", i); w środku. Napis Start! wypisz po pętli.',
+sol:`#include <stdio.h>
+
+int main(void) {
+    int n;
+    scanf("%d", &n);
+    for (int i = n; i >= 1; i--) {
+        printf("%d ", i);
+    }
+    printf("Start!\\n");
+    return 0;
+}
+`}],
+l5:[{title:'funkcja szescian',
+desc:'<p>Napisz ciało funkcji <code>szescian</code>, która zwraca liczbę podniesioną do trzeciej potęgi (<code>x * x * x</code>). Reszta programu jest gotowa.</p>',
+starter:`#include <stdio.h>
+
+// Funkcja ma zwrócić x * x * x
+int szescian(int x) {
+
+}
+
+int main(void) {
+    int n;
+    scanf("%d", &n);
+    printf("Szescian: %d\\n", szescian(n));
+    return 0;
+}
+`,tests:[{i:'3',o:'Szescian: 27'},{i:'2',o:'Szescian: 8'},{i:'-2',o:'Szescian: -8'}],
+hint:'Funkcja oddaje wynik przez return: return x * x * x;',
+sol:`#include <stdio.h>
+
+int szescian(int x) {
+    return x * x * x;
+}
+
+int main(void) {
+    int n;
+    scanf("%d", &n);
+    printf("Szescian: %d\\n", szescian(n));
+    return 0;
+}
+`}],
+l6:[{title:'największy element tablicy',
+desc:'<p>Program wczytuje 5 liczb do tablicy <code>t</code>. Dopisz kod, który znajdzie największą z nich i wypisze: <code>Maks = 9</code>.</p>',
+starter:`#include <stdio.h>
+#define N 5
+
+int main(void) {
+    int t[N];
+    for (int i = 0; i < N; i++) {
+        scanf("%d", &t[i]);
+    }
+    // Znajdź największy element tablicy t i wypisz: Maks = 9
+    return 0;
+}
+`,tests:[{i:'5 3 9 1 7',o:'Maks = 9'},{i:'1 2 3 4 5',o:'Maks = 5'},{i:'-4 -2 -8 -1 -9',o:'Maks = -1'}],
+hint:'Zacznij od int maks = t[0]; potem pętla od i = 1: jeśli t[i] > maks, to maks = t[i];',
+sol:`#include <stdio.h>
+#define N 5
+
+int main(void) {
+    int t[N];
+    for (int i = 0; i < N; i++) {
+        scanf("%d", &t[i]);
+    }
+    int maks = t[0];
+    for (int i = 1; i < N; i++) {
+        if (t[i] > maks) {
+            maks = t[i];
+        }
+    }
+    printf("Maks = %d\\n", maks);
+    return 0;
+}
+`}],
+l7:[{title:'podwajanie przez wskaźnik',
+desc:'<p>Napisz ciało funkcji <code>podwoj</code>: ma pomnożyć przez 2 liczbę, na którą wskazuje <code>p</code> (czyli zmienić <code>x</code> w <code>main</code>).</p>',
+starter:`#include <stdio.h>
+
+// Pomnóż przez 2 liczbę, na którą wskazuje p
+void podwoj(int *p) {
+
+}
+
+int main(void) {
+    int x;
+    scanf("%d", &x);
+    podwoj(&x);
+    printf("x = %d\\n", x);
+    return 0;
+}
+`,tests:[{i:'4',o:'x = 8'},{i:'10',o:'x = 20'},{i:'-3',o:'x = -6'}],
+hint:'Gwiazdka przed p oznacza „to, na co wskazuje p”: *p = *p * 2;',
+sol:`#include <stdio.h>
+
+void podwoj(int *p) {
+    *p = *p * 2;
+}
+
+int main(void) {
+    int x;
+    scanf("%d", &x);
+    podwoj(&x);
+    printf("x = %d\\n", x);
+    return 0;
+}
+`}],
+l8:[{title:'potęga dwójki przesunięciem bitów',
+desc:'<p>Wczytaj <code>n</code> i wypisz 2 do potęgi n, używając <b>przesunięcia bitowego</b> (<code>&lt;&lt;</code>). Format: <code>Wynik = 8</code> dla n = 3.</p>',
+starter:`#include <stdio.h>
+
+int main(void) {
+    int n;
+    scanf("%d", &n);
+    // Wypisz 2 do potęgi n za pomocą przesunięcia bitów: Wynik = 8
+    return 0;
+}
+`,tests:[{i:'3',o:'Wynik = 8'},{i:'10',o:'Wynik = 1024'},{i:'0',o:'Wynik = 1'}],
+hint:'Przesunięcie jedynki w lewo o n bitów to 2 do potęgi n: 1 << n',
+sol:`#include <stdio.h>
+
+int main(void) {
+    int n;
+    scanf("%d", &n);
+    printf("Wynik = %d\\n", 1 << n);
+    return 0;
+}
+`}],
+l9:[{title:'ile liczb jest w pliku',
+desc:'<p>Program otwiera plik <code>dane.txt</code>. Dopisz pętlę, która wczyta wszystkie liczby (<code>fscanf</code>) i policzy, ile ich jest. Wynik: <code>Liczb: 4</code> dla pliku <code>4 8 15 16</code>.</p>',
+starter:`#include <stdio.h>
+
+int main(void) {
+    FILE *f = fopen("dane.txt", "r");
+    if (f == NULL) {
+        printf("Brak pliku\\n");
+        return 1;
+    }
+    int x, ile = 0;
+    // Czytaj liczby z pliku (fscanf) i licz je w zmiennej ile
+    fclose(f);
+    printf("Liczb: %d\\n", ile);
+    return 0;
+}
+`,tests:[{f:{'dane.txt':'4 8 15 16'},o:'Liczb: 4'},{f:{'dane.txt':'1 2'},o:'Liczb: 2'},{f:{'dane.txt':'5'},o:'Liczb: 1'}],
+hint:'while (fscanf(f, "%d", &x) == 1) { ile++; } – pętla trwa, dopóki udaje się wczytać liczbę.',
+sol:`#include <stdio.h>
+
+int main(void) {
+    FILE *f = fopen("dane.txt", "r");
+    if (f == NULL) {
+        printf("Brak pliku\\n");
+        return 1;
+    }
+    int x, ile = 0;
+    while (fscanf(f, "%d", &x) == 1) {
+        ile++;
+    }
+    fclose(f);
+    printf("Liczb: %d\\n", ile);
+    return 0;
+}
+`}],
+l10:[{title:'bezpieczne dzielenie',
+desc:'<p>Napisz funkcję <code>dziel</code>: gdy <code>b</code> jest równe 0, ma zwrócić 0 (i <b>nie dzielić</b>). W przeciwnym razie ma zapisać wynik <code>a / b</code> pod adresem <code>wynik</code> i zwrócić 1. Reszta programu jest gotowa.</p>',
+starter:`#include <stdio.h>
+
+// Zwróć 0 przy b == 0. Inaczej zapisz a / b w *wynik i zwróć 1.
+int dziel(int a, int b, int *wynik) {
+
+}
+
+int main(void) {
+    int a, b, w;
+    scanf("%d %d", &a, &b);
+    if (dziel(a, b, &w)) {
+        printf("Wynik: %d\\n", w);
+    } else {
+        printf("Blad: dzielenie przez zero\\n");
+    }
+    return 0;
+}
+`,tests:[{i:'10 2',o:'Wynik: 5'},{i:'7 0',o:'Blad: dzielenie przez zero'},{i:'9 3',o:'Wynik: 3'}],
+hint:'Najpierw if (b == 0) { return 0; }. Potem *wynik = a / b; i return 1;',
+sol:`#include <stdio.h>
+
+int dziel(int a, int b, int *wynik) {
+    if (b == 0) {
+        return 0;
+    }
+    *wynik = a / b;
+    return 1;
+}
+
+int main(void) {
+    int a, b, w;
+    scanf("%d %d", &a, &b);
+    if (dziel(a, b, &w)) {
+        printf("Wynik: %d\\n", w);
+    } else {
+        printf("Blad: dzielenie przez zero\\n");
+    }
+    return 0;
+}
+`}]};
+LESSONS.forEach(l=>{if(TASKS[l.id])l.tasks=TASKS[l.id]});

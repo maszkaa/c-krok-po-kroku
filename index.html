@@ -41,6 +41,8 @@ td.ch{background:var(--ch);font-weight:600}
 .score{font-weight:600}
 textarea,input.in{width:100%;font:14px ui-monospace,Consolas,monospace;background:var(--card);color:var(--fg);border:1px solid var(--bd);border-radius:8px;padding:8px;margin:4px 0}
 .stk{margin-top:8px;font-size:14px;color:var(--mut)}
+pre{background:var(--bd);padding:8px 10px;border-radius:8px;overflow:auto;font-size:14px;margin:6px 0}
+details{margin-top:10px}summary{cursor:pointer}
 .err{border-color:var(--bad);color:var(--bad)}
 @media(max-width:760px){.wrap{grid-template-columns:1fr}nav{border-right:0;border-bottom:1px solid var(--bd)}.stepper{grid-template-columns:1fr}}
 </style>
@@ -74,6 +76,13 @@ theory:`
 <li><code>printf("%d", x)</code> wypisuje; <code>%d</code> = int, <code>%f</code> = float, <code>%c</code> = znak. <code>\\n</code> to nowa linia.</li>
 <li><code>scanf("%d", &amp;x)</code> wczytuje liczbę do zmiennej. <code>&amp;</code> to „adres zmiennej” – scanf musi wiedzieć, gdzie wpisać wynik.</li>
 <li>Każda instrukcja kończy się średnikiem <code>;</code>.</li></ul>
+<p><b>Szkielet każdego programu</b> – przepisz go, a zmieniaj tylko środek:</p>
+<pre>#include &lt;stdio.h&gt;   ← dołączamy bibliotekę z printf i scanf
+int main(void) {      ← tu program się zaczyna
+    ...               ← Twoje instrukcje, jedna pod drugą
+    return 0;         ← koniec: „wszystko poszło dobrze”
+}                     ← klamry { } obejmują całą funkcję</pre>
+<p>Tekst po <code>//</code> to <b>komentarz</b>: komputer go pomija, a Ty możesz w nim robić notatki.</p>
 <p>Uwaga: zmienna bez wartości początkowej zawiera <b>przypadkowe śmieci</b> z pamięci. Zobacz to w przykładzie 2.</p>`,
 examples:[
 {title:'Przykład 1: zmienne i printf',make:()=>trace([
@@ -390,6 +399,41 @@ function stepper(ex){
   play.onclick=()=>{if(timer)return stop();if(i>=T.steps.length-1)i=-1;play.textContent='❚❚ Stop';timer=setInterval(()=>{if(i>=T.steps.length-1)stop();else go(1)},1400)};
   btns.append(back,next,play,rst,cnt);show();return box;
 }
+const norm=s=>s.replace(/\s+/g,' ').trim();
+function taskBox(t){
+  const box=$('div','card'),h=$('h3','','✏️ Twoje zadanie: '+esc(t.title));h.style.marginTop='0';
+  box.append(h,$('div','',t.desc));
+  const ta=$('textarea');ta.rows=Math.min(20,t.starter.split('\n').length+1);ta.spellcheck=false;ta.value=t.starter;
+  ta.onkeydown=e=>{if(e.key==='Tab'){e.preventDefault();document.execCommand('insertText',false,'    ')}};
+  const out=$('div'),stepRes=$('div'),hint=$('div','note'),sol=$('pre');
+  hint.hidden=sol.hidden=true;hint.textContent='Podpowiedź: '+t.hint;sol.textContent=t.sol;
+  const check=()=>{
+    out.innerHTML='';let ok=0;const list=$('div');
+    t.tests.forEach(c=>{
+      const dane=c.f?`plik dane.txt = „${Object.values(c.f)[0]}”`:c.i?`dane: „${c.i}”`:'bez danych';let good=false,msg;
+      try{
+        const T=runC(ta.value,c.i||'',c.f),got=T.steps[T.steps.length-1].out;
+        if(T.error)msg=`${dane}: błąd – ${T.error}`;
+        else if(norm(got)===norm(c.o)){good=true;ok++;msg=`${dane} → ${c.o}`}
+        else msg=`${dane}: oczekiwano „${c.o}”, ${norm(got)?`a program wypisał „${norm(got)}”`:'a program nic nie wypisał'}`;
+      }catch(e){if(!e.msg)throw e;msg=`błąd w linii ${e.line}: ${e.msg}`}
+      const d=$('div');d.textContent=(good?'✔ ':'✘ ')+msg;d.style.color=good?'var(--ok)':'var(--bad)';list.append(d);
+    });
+    const sum=$('b');sum.textContent=ok===t.tests.length?'🎉 Brawo, zadanie zaliczone!':`Zaliczone testy: ${ok} z ${t.tests.length}. Popraw program i sprawdź jeszcze raz.`;
+    out.append(list,sum);
+  };
+  const watch=()=>{
+    stepRes.innerHTML='';const c=t.tests[0];
+    try{stepRes.append(stepper({title:'Twój program (dane z testu 1)',make:()=>runC(ta.value,c.i||'',c.f)}))}
+    catch(e){if(!e.msg)throw e;const d=$('div','card err');d.textContent=`Błąd w linii ${e.line}: ${e.msg}`;stepRes.append(d)}
+  };
+  const btn=(label,cls,fn)=>{const b=$('button',cls,label);b.onclick=fn;return b};
+  const btns=$('div','btns');
+  btns.append(btn('✔ Sprawdź','pri',check),btn('▶ Zobacz krok po kroku','',watch),
+    btn('💡 Podpowiedź','',()=>{hint.hidden=!hint.hidden}),btn('Pokaż rozwiązanie','',()=>{sol.hidden=!sol.hidden}),
+    btn('Wróć do szablonu','',()=>{ta.value=t.starter}));
+  box.append(ta,btns,out,hint,sol,stepRes);return box;
+}
 function quiz(l){
   const box=$('div','card');box.append($('h3','','Sprawdź się'));
   let right=0,done=0;const score=$('div','score');
@@ -411,10 +455,12 @@ function render(){
   m.append($('h2','',l.title),$('div','card',l.theory));
   if(l.widget)m.append(l.widget());
   m.append($('h3','','Zobacz, jak to działa'));
-  l.examples.forEach(e=>m.append(stepper(e)));m.append(quiz(l));window.scrollTo(0,0);
+  l.examples.forEach(e=>m.append(stepper(e)));
+  if(l.tasks)l.tasks.forEach(t=>m.append(taskBox(t)));
+  m.append(quiz(l));window.scrollTo(0,0);
 }
 addEventListener('DOMContentLoaded',render);
 </script>
-<script src="lessons-c.js?v=3"></script>
+<script src="lessons-c.js?v=4"></script>
 </body>
 </html>

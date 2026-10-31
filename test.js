@@ -49,11 +49,22 @@ assert.ok(err('assert(1==2);').includes('assert'));
 assert.strictEqual(out('int n; int r=scanf("%d",&n); printf("%d",r);', 'abc'), '0');
 assert.strictEqual(runC(fns('#define N 3\nint main(void){int t[N]; printf("%d",(int)sizeof(t));}'), '').steps.pop().out, '12');
 // every lesson example must run; titles with ❌ must stop with an error on purpose
-const LESSONS = [], COMING = [0];
+const LESSONS = [{ id: 'l3' }, { id: 'l4' }, { id: 'l5' }], COMING = [0];
 const lessonSrc = require('fs').readFileSync(__dirname + '/lessons-c.js', 'utf8');
 new Function('LESSONS', 'COMING', 'prog5', '$', 'esc', lessonSrc)(LESSONS, COMING, (title, code, input = '', files) => ({ title, code, input, files }), () => ({}), s => s);
 let n = 0;
-for (const l of LESSONS) for (const ex of l.examples) {
+let tn = 0;
+const norm = s => s.replace(/\s+/g, ' ').trim();
+for (const l of LESSONS) for (const t of l.tasks || []) {
+  for (const c of t.tests) {
+    const T = runC(t.sol, c.i || '', c.f);
+    assert.ok(!T.error, `${l.id} ${t.title}: ${T.error}`);
+    assert.strictEqual(norm(T.steps.pop().out), norm(c.o), `${l.id} ${t.title} [${c.i}]`);
+  }
+  tn++;
+}
+assert.strictEqual(tn, 10, 'every lesson needs a task');
+for (const l of LESSONS) for (const ex of l.examples || []) {
   const T = runC(ex.code, ex.input, ex.files);
   assert.strictEqual(!!T.error, ex.title.includes('❌'), `${ex.title}: ${T.error}`);
   n++;
