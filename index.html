@@ -422,6 +422,13 @@ function stepper(ex){
   btns.append(back,next,play,rst,cnt);box.append(xb.el);show();return box;
 }
 const norm=s=>s.replace(/\s+/g,' ').trim();
+// Rewards for solved tasks: the first solved task always gets the first picture, the next ones the following pictures.
+const REWARDS=['nagrody/kot1.png','nagrody/kot2.jpg','nagrody/kot3.jpg','nagrody/kot4.jpg','nagrody/kot5.jpg','nagrody/kot6.jpg','nagrody/piesek2.png','nagrody/piesek3.png'];
+function rewardFor(key){
+  let d=[];try{d=JSON.parse(localStorage.getItem('ckkdone')||'[]')}catch(e){}
+  if(!d.includes(key)){d.push(key);try{localStorage.setItem('ckkdone',JSON.stringify(d))}catch(e){}}
+  return REWARDS[d.indexOf(key)%REWARDS.length];
+}
 function taskBox(t){
   const box=$('div','card'),h=$('h3','','✏️ Twoje zadanie: '+esc(t.title));h.style.marginTop='0';
   box.append(h,$('div','',t.desc));
@@ -443,6 +450,11 @@ function taskBox(t){
     });
     const sum=$('b');sum.textContent=ok===t.tests.length?'🎉 Brawo, zadanie zaliczone!':`Zaliczone testy: ${ok} z ${t.tests.length}. Popraw program i sprawdź jeszcze raz.`;
     out.append(list,sum);
+    if(ok===t.tests.length){
+      const im=$('img');im.src=rewardFor(t.title);im.alt='Nagroda: słodkie zdjęcie';
+      im.style.cssText='display:block;max-width:min(340px,100%);max-height:420px;object-fit:cover;border-radius:14px;margin:10px 0;border:3px solid var(--bd)';
+      out.append(im);
+    }
   };
   const watch=()=>{
     stepRes.innerHTML='';const c=t.tests[0];
