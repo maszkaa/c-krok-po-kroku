@@ -43,6 +43,11 @@ textarea,input.in{width:100%;font:14px ui-monospace,Consolas,monospace;backgroun
 .stk{margin-top:8px;font-size:14px;color:var(--mut)}
 pre{background:var(--bd);padding:8px 10px;border-radius:8px;overflow:auto;font-size:14px;margin:6px 0}
 details{margin-top:10px}summary{cursor:pointer}
+.expl{border:1px solid var(--bd);border-radius:8px;padding:8px 10px;background:var(--card)}
+.expl summary{font-weight:600;color:var(--ac)}
+.expl .ex{padding:6px 8px;border-bottom:1px solid var(--bd)}
+.expl .ex.cur{background:var(--hl)}
+.expl .ex code{display:block;font-weight:600;white-space:pre-wrap;margin-bottom:2px}
 .err{border-color:var(--bad);color:var(--bad)}
 @media(max-width:760px){.wrap{grid-template-columns:1fr}nav{border-right:0;border-bottom:1px solid var(--bd)}.stepper{grid-template-columns:1fr}}
 </style>
@@ -51,6 +56,7 @@ details{margin-top:10px}summary{cursor:pointer}
 <header><h1>C krok po kroku</h1><span>Programowanie proceduralne · ミ ᴗ͈  。ᴗ͈ ミ</span></header>
 <div class="wrap"><nav id="nav"></nav><main id="main"></main></div>
 <script src="interp.js?v=3"></script>
+<script src="explain.js?v=5"></script>
 <script>
 // Tracer: mirrors the C program in JS and records the machine state after each step.
 function trace(code, fn){
@@ -368,6 +374,17 @@ function renderNav(){
   const lb=$('button',cur==='lab'?'on':'','✍ Pracownia: własny kod');lb.onclick=()=>{cur='lab';render()};nav.append(lb);
   COMING.forEach(t=>{const b=$('button','',t+' (wkrótce)');b.disabled=true;nav.append(b)});
 }
+const txt=s=>esc(s).replace(/`([^`]+)`/g,'<code>$1</code>');
+function explainBox(code){
+  const el=$('details','expl'),rows={};
+  el.append($('summary','','🧠 Co to wszystko znaczy? Wytłumacz mi ten kod linia po linii'));
+  const list=$('div'),all=explainCode(code);
+  list.append($('p','why','Każdy wiersz to jedna linia kodu i jej opis „po ludzku”. Pojedyncze klamry } pominąłem: każda po prostu kończy blok otwarty wyżej. Podczas oglądania programu krok po kroku podświetla się linia, która właśnie się wykonuje.'));
+  all.forEach(r=>{const d=$('div','ex'),c=$('code');c.textContent=`${r.n}: ${r.code}`;const t=$('span');t.innerHTML=txt(r.text);d.append(c,t);list.append(d);rows[r.n]=d});
+  el.append(list);
+  let last=null;
+  return{el,mark:n=>{if(last)last.classList.remove('cur');last=rows[n]||null;if(last)last.classList.add('cur')}};
+}
 function stepper(ex){
   const T=ex.make(),box=$('div','card');box.append($('b','',ex.title));
   const grid=$('div','stepper');box.append(grid);
@@ -375,8 +392,10 @@ function stepper(ex){
   const right=$('div'),vt=$('div'),stk=$('div','stk'),term=$('div','term'),fl=$('div','stk');right.append(vt,stk,term,fl);grid.append(code,right);
   const note=$('div','note'),btns=$('div','btns');box.append(note,btns);
   let i=-1,timer=null;
+  const xb=explainBox(T.code);
   const show=()=>{
     const s=T.steps[Math.max(i,0)],p=i>0?T.steps[i-1]:null;
+    xb.mark(i<0?0:s.line);
     [...code.children].forEach((d,k)=>d.classList.toggle('cur',i>=0&&k===s.line-1));
     const hdr=s.stack&&(s.stack.length>1||s.vars.some(v=>v.fr===-1));
     stk.textContent=s.stack?'Stos wywołań: '+(s.stack.join(' → ')||'(pusty)'):'';
@@ -397,7 +416,7 @@ function stepper(ex){
   const back=$('button','','◀ Wstecz'),next=$('button','pri','Dalej ▶'),rst=$('button','','Od nowa'),play=$('button','','▶ Auto'),cnt=$('span','cnt');
   back.onclick=()=>{stop();go(-1)};next.onclick=()=>{stop();go(1)};rst.onclick=()=>{stop();i=-1;show()};
   play.onclick=()=>{if(timer)return stop();if(i>=T.steps.length-1)i=-1;play.textContent='❚❚ Stop';timer=setInterval(()=>{if(i>=T.steps.length-1)stop();else go(1)},1400)};
-  btns.append(back,next,play,rst,cnt);show();return box;
+  btns.append(back,next,play,rst,cnt);box.append(xb.el);show();return box;
 }
 const norm=s=>s.replace(/\s+/g,' ').trim();
 function taskBox(t){
