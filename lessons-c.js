@@ -431,3 +431,94 @@ quiz:[
 {q:'Który zestaw danych jest przypadkiem brzegowym dla funkcji liczącej maksimum z tablicy?',o:['Tablica z 5 losowymi liczbami','Tablica z jednym elementem','Dowolna duża tablica','Żaden'],a:1,w:'Przypadki brzegowe to skrajne, graniczne sytuacje: najmniejsza tablica, zero, wartości ujemne.'},
 {q:'Co robi assert(x > 0), gdy x wynosi -1?',o:['Nic','Przerywa program z komunikatem o błędzie','Zmienia x na 1','Wypisuje ostrzeżenie i działa dalej'],a:1,w:'assert kończy program, gdy warunek jest fałszywy – wygodne do testowania założeń.'}
 ]});
+
+LESSONS.unshift({id:'l1',title:'1. O co w tym chodzi?',
+theory:`
+<p><b>Programowanie</b> to wymyślanie dla komputera <b>przepisu</b> (kolejnych kroków), który on wykona sam i bezbłędnie, ale <i>dokładnie tak, jak napisano</i>. Komputer nie domyśla się niczego. Dlatego uczymy się myśleć krok po kroku.</p>
+<ul>
+<li><b>Droga od pomysłu do działania:</b> problem → <b>algorytm</b> (przepis na rozwiązanie) → <b>program</b> (przepis zapisany w języku programowania) → wynik.</li>
+<li><b>Język programowania</b> to ścisły język do rozmawiania z komputerem. My uczymy się języka <b>C</b>: prostego, szybkiego i bliskiego sprzętowi. Dzięki niemu zobaczysz, co naprawdę dzieje się w pamięci.</li>
+<li><b>Kod źródłowy</b> to tekst, który piszesz. Komputer rozumie tylko kod maszynowy (zera i jedynki), więc <b>kompilator</b> tłumaczy cały program naraz na plik wykonywalny. <b>Interpreter</b> tłumaczy i wykonuje linia po linii (tak działa np. Python).</li>
+<li><b>Programowanie proceduralne</b>: program dzielimy na <b>procedury</b> (funkcje), czyli małe części, z których każda robi jedną rzecz. Programowanie <b>strukturalne</b>: kod składa się z prostych konstrukcji (po kolei, warunek, pętla), bez chaotycznych skoków.</li>
+<li><b>Narzędzia programisty:</b> edytor lub <b>IDE</b> (środowisko, np. Visual Studio), kompilator, <b>debugger</b> (wykonywanie programu krok po kroku – to właśnie robisz w tej aplikacji), system kontroli wersji <b>git</b> (historia zmian kodu; GitHub to serwis do jego trzymania).</li>
+<li><b>Jak się uczyć programowania:</b> pytaj, czytaj, podglądaj cudzy kod i <b>programuj, programuj, programuj</b>. Błędy to normalna część nauki.</li></ul>`,
+examples:[
+prog5('Przykład: problem → algorytm → program',`#include <stdio.h>
+
+int main(void) {
+    int cena = 3;
+    int ile = 4;
+    int razem = cena * ile;
+    printf("Do zaplaty: %d zl\\n", razem);
+    return 0;
+}
+`)],
+quiz:[
+{q:'Czym różni się algorytm od programu?',o:['Niczym','Algorytm to pomysł na rozwiązanie, program to jego zapis w języku programowania','Program jest zawsze krótszy','Algorytm działa tylko w C'],a:1,w:'Algorytm jest niezależny od języka. Program to jego konkretny zapis.'},
+{q:'Co robi kompilator?',o:['Uruchamia program linia po linii','Tłumaczy kod źródłowy na kod maszynowy','Naprawia błędy','Zapisuje program na dysku'],a:1,w:'Kompilator tłumaczy cały program na postać zrozumiałą dla procesora.'},
+{q:'Do czego służy debugger?',o:['Do pisania kodu','Do wykonywania programu krok po kroku i szukania błędów','Do kompilowania','Do przechowywania historii zmian'],a:1,w:'Debugger pokazuje stan programu w trakcie działania. Tak działa okno „co się dzieje” w tej aplikacji.'},
+{q:'Na czym polega programowanie proceduralne?',o:['Na pisaniu całości w jednej linii','Na dzieleniu programu na procedury (funkcje)','Na używaniu tylko pętli','Na pisaniu bez zmiennych'],a:1,w:'Małe funkcje robiące jedną rzecz łatwiej napisać, przetestować i zrozumieć.'}
+]},
+{id:'l2',title:'2. Algorytmy',
+theory:`
+<p><b>Algorytm</b> to skończony ciąg jasno opisanych kroków prowadzący do rozwiązania zadania. Przykład z życia: przepis na herbatę, droga do uczelni, instrukcja obsługi.</p>
+<ul>
+<li><b>Cechy algorytmu:</b> <b>skończoność</b> (musi się kiedyś zakończyć), <b>określoność</b> (każdy krok jest jednoznaczny), <b>poprawność</b> (daje dobry wynik dla każdych poprawnych danych). Ma <b>dane wejściowe</b> i <b>wynik</b>.</li>
+<li><b>Specyfikacja zadania:</b> zanim cokolwiek napiszesz, ustal: co dostajemy (wejście), co ma wyjść (wyjście). Np. „Dla dwóch liczb podaj większą”.</li>
+<li><b>Zapis algorytmu:</b> słownie, <b>pseudokodem</b> lub <b>schematem blokowym</b> (prostokąty = czynności, romby = decyzje, strzałki = kolejność). Pseudokod to „polski” zapis zbliżony do kodu, np.:<pre>jeśli a &gt; b
+    wynik ← a
+w przeciwnym razie
+    wynik ← b</pre></li>
+<li><b>Podejście zstępujące:</b> duży problem dzielisz na mniejsze, a te na jeszcze mniejsze, aż każdy da się łatwo zapisać. Z takich części powstają funkcje.</li>
+<li><b>Złożoność obliczeniowa</b> mówi, jak rośnie liczba kroków wraz z ilością danych. Szukanie liczby w tablicy po kolei to w najgorszym razie tyle kroków, ile elementów (złożoność liniowa).</li>
+<li>Algorytm Euklidesa (NWD) pochodzi sprzed ponad 2000 lat i do dziś jest jednym z najlepszych przykładów: bardzo krótki i bardzo szybki.</li></ul>`,
+examples:[
+prog5('Przykład 1: większa z dwóch liczb',`#include <stdio.h>
+
+int main(void) {
+    int a = 7, b = 12, wynik;
+    if (a > b) {
+        wynik = a;
+    } else {
+        wynik = b;
+    }
+    printf("Wieksza: %d\\n", wynik);
+    return 0;
+}
+`),
+prog5('Przykład 2: algorytm Euklidesa (NWD 48 i 18)',`#include <stdio.h>
+
+int main(void) {
+    int a = 48, b = 18;
+    while (b != 0) {
+        int reszta = a % b;
+        a = b;
+        b = reszta;
+    }
+    printf("NWD = %d\\n", a);
+    return 0;
+}
+`),
+prog5('Przykład 3: szukanie po kolei i liczenie kroków',`#include <stdio.h>
+#define N 6
+
+int main(void) {
+    int t[N] = {8, 3, 5, 9, 1, 4};
+    int szukana = 9, poz = -1, porownania = 0;
+    for (int i = 0; i < N; i++) {
+        porownania++;
+        if (t[i] == szukana) {
+            poz = i;
+            break;
+        }
+    }
+    printf("indeks %d, porownan: %d\\n", poz, porownania);
+    return 0;
+}
+`)],
+quiz:[
+{q:'Która cecha algorytmu mówi, że musi się on kiedyś zakończyć?',o:['Określoność','Skończoność','Poprawność','Szybkość'],a:1,w:'Skończoność: algorytm nie może działać w nieskończoność.'},
+{q:'Co oznacza romb na schemacie blokowym?',o:['Początek programu','Decyzję (warunek)','Wypisanie wyniku','Pętlę nieskończoną'],a:1,w:'Romb to miejsce, w którym wybieramy dalszą drogę na podstawie warunku.'},
+{q:'Czym jest podejście zstępujące?',o:['Pisaniem programu od końca','Dzieleniem dużego problemu na mniejsze części','Szukaniem w tablicy od tyłu','Zapisem algorytmu pseudokodem'],a:1,w:'Rozbijasz zadanie na prostsze kroki, aż każdy da się łatwo zapisać.'},
+{q:'Ile porównań w najgorszym razie zrobi szukanie po kolei w tablicy 1000 elementów?',o:['1','10','1000','1 000 000'],a:2,w:'W najgorszym razie sprawdzisz każdy element, czyli tyle kroków, ile elementów.'}
+]});
