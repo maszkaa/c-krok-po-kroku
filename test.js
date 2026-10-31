@@ -70,7 +70,9 @@ for (const l of LESSONS) for (const ex of l.examples || []) {
   n++;
 }
 // the explainer must describe every example and task line without falling back to the generic text
-const { explainCode } = require('./explain.js');
+const { explainCode, hl } = require('./explain.js');
+assert.strictEqual(hl('int x = 3; // ok'), '<span class="t">int</span> x = <span class="n">3</span>; <span class="c">// ok</span>');
+assert.ok(hl('printf("a %d\\n", x < 2);').includes('<span class="f">printf</span>(') && hl('x < 2').includes('&lt;'));
 for (const l of LESSONS) {
   const codes = [...(l.examples || []).map(e => e.code), ...(l.tasks || []).flatMap(t => [t.starter, t.sol])];
   for (const c of codes) for (const r of explainCode(c.split('\n'))) assert.ok(r.text && !r.text.startsWith('Wykonuje:'), `${l.id}: ${r.code}`);

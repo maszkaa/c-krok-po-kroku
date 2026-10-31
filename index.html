@@ -51,6 +51,12 @@ details{margin-top:10px}summary{cursor:pointer}
 .expl .ex{padding:6px 8px;border-bottom:1px solid var(--bd)}
 .expl .ex.cur{background:var(--hl)}
 .expl .ex code{display:block;font-weight:600;white-space:pre-wrap;margin-bottom:2px}
+.k{color:#af00db}.t,.m{color:#0070c1}.f{color:#795e26}.s{color:#b4430f}.e{color:#d6336c;font-weight:600}.n{color:#087a52}.c{color:#4d7a3a;font-style:italic}.p{color:#8a3ab9}
+.ed{position:relative;border:1px solid var(--bd);border-radius:8px;background:var(--card);margin:4px 0}
+.ed pre.hl,.ed textarea{margin:0;padding:8px;border:0;border-radius:8px;font:14px/1.5 ui-monospace,Consolas,monospace;white-space:pre;tab-size:4;width:100%;box-sizing:border-box;letter-spacing:0}
+.ed pre.hl{position:absolute;inset:0;background:none;pointer-events:none;overflow:hidden;color:var(--fg)}
+.ed textarea{position:relative;display:block;color:transparent;background:transparent;caret-color:var(--fg);resize:vertical;overflow:auto}
+.ed textarea::selection{background:var(--ch)}
 .err{border-color:var(--bad);color:var(--bad)}
 @media(max-width:760px){.wrap{grid-template-columns:1fr}nav{border-right:0;border-bottom:1px solid var(--bd)}.stepper{grid-template-columns:1fr}}
 </style>
@@ -59,7 +65,7 @@ details{margin-top:10px}summary{cursor:pointer}
 <header><h1>C krok po kroku</h1><span>Programowanie proceduralne · ミ ᴗ͈  。ᴗ͈ ミ</span></header>
 <div class="wrap"><nav id="nav"></nav><main id="main"></main></div>
 <script src="interp.js?v=3"></script>
-<script src="explain.js?v=5"></script>
+<script src="explain.js?v=6"></script>
 <script>
 // Tracer: mirrors the C program in JS and records the machine state after each step.
 function trace(code, fn){
@@ -362,7 +368,7 @@ function lab(m){
   };
   const btns=$('div','btns'),go=$('button','pri','▶ Uruchom');go.onclick=run;btns.append(go);
   PRESETS.forEach(p=>{const b=$('button','','Przykład: '+p.n);b.onclick=()=>{ta.value=p.c;inp.value=p.i;fil.value=p.f||'';ta.oninput();run()};btns.append(b)});
-  m.append(ta,$('div','','Dane wejściowe (to, co „wpisujesz na klawiaturze” dla scanf):'),inp,$('div','','Zawartość pliku dane.txt (dla fopen("dane.txt", "r")):'),fil,btns,res);
+  m.append(editorWrap(ta),$('div','','Dane wejściowe (to, co „wpisujesz na klawiaturze” dla scanf):'),inp,$('div','','Zawartość pliku dane.txt (dla fopen("dane.txt", "r")):'),fil,btns,res);
   run();
 }
 
@@ -383,7 +389,7 @@ function explainBox(code){
   el.append($('summary','','✿ Wytłumaczenie'));
   const list=$('div'),all=explainCode(code);
   list.append($('p','why','Każdy wiersz to jedna linia kodu i jej opis „po ludzku”. Pojedyncze klamry } pominąłem: każda po prostu kończy blok otwarty wyżej. Podczas oglądania programu krok po kroku podświetla się linia, która właśnie się wykonuje.'));
-  all.forEach(r=>{const d=$('div','ex'),c=$('code');c.textContent=`${r.n}: ${r.code}`;const t=$('span');t.innerHTML=txt(r.text);d.append(c,t);list.append(d);rows[r.n]=d});
+  all.forEach(r=>{const d=$('div','ex'),c=$('code');c.innerHTML=`${r.n}: ${hl(r.code)}`;const t=$('span');t.innerHTML=txt(r.text);d.append(c,t);list.append(d);rows[r.n]=d});
   el.append(list);
   let last=null;
   return{el,mark:n=>{if(last)last.classList.remove('cur');last=rows[n]||null;if(last)last.classList.add('cur')}};
@@ -391,7 +397,7 @@ function explainBox(code){
 function stepper(ex){
   const T=ex.make(),box=$('div','card');box.append($('b','',ex.title));
   const grid=$('div','stepper');box.append(grid);
-  const code=$('div','code');T.code.forEach((l,i)=>{const d=$('div');d.innerHTML=`<i>${i+1}</i>`;d.append(document.createTextNode(l));code.append(d)});
+  const code=$('div','code');T.code.forEach((l,i)=>{const d=$('div');d.innerHTML=`<i>${i+1}</i>`+hl(l);code.append(d)});
   const right=$('div'),vt=$('div'),stk=$('div','stk'),term=$('div','term'),fl=$('div','stk');right.append(vt,stk,term,fl);grid.append(code,right);
   const note=$('div','note'),btns=$('div','btns');box.append(note,btns);
   let i=-1,timer=null;
@@ -421,6 +427,15 @@ function stepper(ex){
   play.onclick=()=>{if(timer)return stop();if(i>=T.steps.length-1)i=-1;play.textContent='❚❚ Stop';timer=setInterval(()=>{if(i>=T.steps.length-1)stop();else go(1)},1400)};
   btns.append(back,next,play,rst,cnt);box.append(xb.el);show();return box;
 }
+// Coloured editor: a highlighted <pre> sits under a transparent <textarea>; both scroll together.
+function editorWrap(ta){
+  const w=$('div','ed'),pre=$('pre','hl');pre.setAttribute('aria-hidden','true');ta.wrap='off';
+  const sync=()=>{pre.innerHTML=hl(ta.value)+'\n ';pre.scrollTop=ta.scrollTop;pre.scrollLeft=ta.scrollLeft};
+  const d=Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype,'value');
+  Object.defineProperty(ta,'value',{get(){return d.get.call(ta)},set(v){d.set.call(ta,v);sync()}});
+  ta.addEventListener('input',sync);ta.addEventListener('scroll',sync);
+  w.append(pre,ta);sync();return w;
+}
 const norm=s=>s.replace(/\s+/g,' ').trim();
 // Rewards for solved tasks: the first solved task always gets the first picture, the next ones the following pictures.
 const REWARDS=['nagrody/kot1.png','nagrody/moje01.png','nagrody/moje02.webp','nagrody/moje03.png','nagrody/moje04.png','nagrody/moje05.webp','nagrody/moje06.webp','nagrody/moje07.png','nagrody/moje08.png','nagrody/moje09.png','nagrody/moje10.webp','nagrody/moje11.png','nagrody/piesek2.png','nagrody/piesek3.png'];
@@ -435,7 +450,7 @@ function taskBox(t){
   const ta=$('textarea');ta.rows=Math.min(20,t.starter.split('\n').length+1);ta.spellcheck=false;ta.value=t.starter;
   ta.onkeydown=e=>{if(e.key==='Tab'){e.preventDefault();document.execCommand('insertText',false,'    ')}};
   const out=$('div'),stepRes=$('div'),hint=$('div','note'),sol=$('pre');
-  hint.hidden=sol.hidden=true;hint.textContent='Podpowiedź: '+t.hint;sol.textContent=t.sol;
+  hint.hidden=sol.hidden=true;hint.textContent='Podpowiedź: '+t.hint;sol.innerHTML=hl(t.sol);
   const check=()=>{
     out.innerHTML='';let ok=0;const list=$('div');
     t.tests.forEach(c=>{
@@ -466,7 +481,7 @@ function taskBox(t){
   btns.append(btn('✔ Sprawdź','pri',check),btn('▶ Zobacz krok po kroku','',watch),
     btn('💡 Podpowiedź','',()=>{hint.hidden=!hint.hidden}),btn('Pokaż rozwiązanie','',()=>{sol.hidden=!sol.hidden}),
     btn('Wróć do szablonu','',()=>{ta.value=t.starter}));
-  box.append(ta,btns,out,hint,sol,stepRes);return box;
+  box.append(editorWrap(ta),btns,out,hint,sol,stepRes);return box;
 }
 function quiz(l){
   const box=$('div','card');box.append($('h3','','Sprawdź się'));

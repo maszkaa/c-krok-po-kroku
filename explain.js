@@ -122,4 +122,27 @@ function explainCode(lines){
   });
   return out;
 }
-if(typeof module!=='undefined')module.exports={explainCode};
+// Syntax highlighting: returns HTML with <span class="k|t|f|s|n|c|p|e|m"> tokens.
+const HL_CTL=new Set(['if','else','while','do','for','return','break','continue','sizeof','typedef']);
+const HL_TYPE=new Set(['int','float','double','char','void','unsigned','signed','const','struct','FILE','long','short']);
+const hlEsc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+function hl(code){
+  return code.replace(/(\/\/[^\n]*)|(#[^\n]*)|("(?:\\.|[^"\\\n])*")|('(?:\\.|[^'\\\n])*')|(\b0[xX][0-9a-fA-F]+\b|\b\d+\.?\d*(?:[eE][+-]?\d+)?[fF]?\b)|([A-Za-z_]\w*)(\s*\()?|([&<>])/g,
+    (m,cm,pp,st,ch,num,id,par,op)=>{
+      if(cm)return `<span class="c">${hlEsc(cm)}</span>`;
+      if(pp)return `<span class="p">${hlEsc(pp)}</span>`;
+      if(st)return `<span class="s">${hlEsc(st).replace(/(\\.|%[-0-9.]*(?:ll|l|z)?[dicfsuxXop%])/g,'<span class="e">$1</span>')}</span>`;
+      if(ch)return `<span class="s">${hlEsc(ch)}</span>`;
+      if(num)return `<span class="n">${num}</span>`;
+      if(id){
+        const tail=par||'';
+        if(HL_CTL.has(id))return `<span class="k">${id}</span>${tail}`;
+        if(HL_TYPE.has(id))return `<span class="t">${id}</span>${tail}`;
+        if(par)return `<span class="f">${id}</span>${tail}`;
+        if(/^[A-Z][A-Z0-9_]+$/.test(id))return `<span class="m">${id}</span>`;
+        return id;
+      }
+      return hlEsc(op);
+    });
+}
+if(typeof module!=='undefined')module.exports={explainCode,hl};
